@@ -1,7 +1,7 @@
 {
 	"host": "localhost",
 	"username": "Conducente",
-	"password": "pippo",
+	"password": "conducente",
 	"port": 3306,
 	"database": "gestione-esami"
 }

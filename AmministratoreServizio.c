@@ -11,69 +11,59 @@ static void add_driver(MYSQL* conn)
 	MYSQL_BIND param[9];
 
 	char buff[10];
-	char CF[18];
+	char cf[16];
 	char username[45];
 	char nome[45];
 	char cognome[45];
 	MYSQL_TIME data_nascita[1];
 	MYSQL_TIME scadenza_patente[1];
 	char luogo_nascita[45];
-	char numero_patente[12];
-	char veicolo_Assegnato[6];
+	char numero_patente[10];
+	char veicolo_Assegnato[4];
 	memset(data_nascita, 0, sizeof(data_nascita));
-	memset(scadenza_patente, 0, sizeof(data_nascita));
-
+	memset(scadenza_patente, 0, sizeof(scadenza_patente));
+	data_nascita->time_type = MYSQL_TIMESTAMP_DATE;
+	scadenza_patente->time_type = MYSQL_TIMESTAMP_DATE;
+	
 	// Get the required information
 	printf("\nInserisci codice fiscale (16 caratteri): ");
-	fgets(CF, 18, stdin);
-	CF[strlen(CF)-1] = '\0';
+	getInput(16, cf, false);
 	printf("\nInserisci username (valido): ");
-	fgets(username, 45, stdin);
-	username[strlen(username) - 1] = '\0';
+	getInput(45, username, false);
 	printf("\nInserisci nome: ");
-	fgets(nome, 45, stdin);
-	nome[strlen(nome) - 1] = '\0';
+	getInput(45, nome, false);
 	printf("\nInserisci cognome: ");
-	fgets(cognome, 45, stdin);
-	cognome[strlen(cognome) - 1] = '\0';
+	getInput(45, cognome, false);
 	printf("\nInserisci anno di nascita: ");
-	fgets(buff, 10, stdin);
-	buff[strlen(buff) - 1] = '\0';
-	data_nascita[0].year = atoi(buff);
-	fflush(stdin);
+	getInput(10, buff, false);
+	data_nascita->year = atoi(buff);
+	printf("%d",data_nascita->year);
 	printf("\nInserisci mese di nascita: ");
-	fgets(buff, 10, stdin);
-	buff[strlen(buff) - 1] = '\0';
-	data_nascita[0].month =	atoi(buff);
-	fflush(stdin);
+	getInput(10, buff, false);
+	data_nascita->month =atoi(buff);
+	printf("%d",data_nascita->month);
 	printf("\nInserisci giorno di nascita: ");
-	fgets(buff, 10, stdin);
-	buff[strlen(buff) - 1] = '\0';
-	data_nascita[0].day = atoi(buff);
-	fflush(stdin);
+	getInput(10, buff, false);
+	data_nascita->day = atoi(buff);
+	printf("%d",data_nascita->day);
 	printf("\nInserisci luogo di nascita: ");
-	fgets(luogo_nascita, 45, stdin);
-	luogo_nascita[strlen(luogo_nascita) - 1] = '\0';
+	getInput(45, luogo_nascita, false);
 	printf("\nInserisci numero patente: ");
-	fgets(numero_patente, 12, stdin);
-	numero_patente[strlen(numero_patente) - 1] = '\0';
+	getInput(10, numero_patente, false);
 	printf("\nInserisci anno di scadenza della patente: ");
-	fgets(buff, 10, stdin);
-	buff[strlen(buff) - 1] = '\0';
-	scadenza_patente[0].year = atoi(buff);
-	fflush(stdin);
+	getInput(10, buff, false);
+	scadenza_patente->year = atoi(buff);
+	printf("%d",scadenza_patente->year);
 	printf("\nInserisci mese di scadenza della patente: ");
-	fgets(buff, 10, stdin);
-	buff[strlen(buff) - 1] = '\0';
-	scadenza_patente[0].month = atoi(buff);
-	fflush(stdin);
+	getInput(10, buff, false);
+	scadenza_patente->month = atoi(buff);
+	printf("%d",scadenza_patente->month);
 	printf("\nInserisci giorno di scadenza della patente: ");
-	fgets(buff, 10, stdin);
-	buff[strlen(buff) - 1] = '\0';
-	scadenza_patente[0].day = atoi(buff);
+	getInput(10, buff, false);
+	scadenza_patente->day = atoi(buff);
+	printf("%d",scadenza_patente->day);
 	printf("\nInserisci il veicolo assegnato : ");
-	fgets(veicolo_Assegnato, 6, stdin);
-	veicolo_Assegnato[strlen(veicolo_Assegnato) - 1] = '\0';
+	getInput(4, veicolo_Assegnato, false);
 
 	// Prepare stored procedure call
 	if (!setup_prepared_stmt(&prepared_stmt, "call Aggiungi_Conducente(?, ?, ?, ?, ?, ?, ?, ?, ?)", conn)) {
@@ -84,8 +74,8 @@ static void add_driver(MYSQL* conn)
 	memset(param, 0, sizeof(param));
 
 	param[0].buffer_type = MYSQL_TYPE_STRING;
-	param[0].buffer = CF;
-	param[0].buffer_length = sizeof(CF);
+	param[0].buffer = cf;
+	param[0].buffer_length = sizeof(cf);
 
 	param[1].buffer_type = MYSQL_TYPE_VAR_STRING;
 	param[1].buffer = username;
@@ -154,9 +144,9 @@ static void create_user(MYSQL* conn)
 
 	// Get the required information
 	printf("\nUsername: ");
-	fgets(username,46,stdin);
+	getInput(46, username, false);
 	printf("password: ");
-	fgets(password, 46, stdin);
+	getInput(46, password, true);
 	printf("Assign a possible role:\n");
 	printf("\t1) Amministratore Servizio\n");
 	printf("\t2) Conducente\n");
@@ -227,11 +217,11 @@ static void add_waypoint(MYSQL* conn)
 
 	// Get the required information
 	printf("\nInserisci latitudine: ");
-	fgets(buff,128,stdin);
+	getInput(128, buff, false);
 	latitudine = (float)atof(buff);
 	fflush(stdin);
 	printf("\nInserisci longitudine: ");
-	fgets(buff, 128, stdin);
+	getInput(128, buff, false);
 	longitudine = (float)atof(buff);
 
 	// Prepare stored procedure call

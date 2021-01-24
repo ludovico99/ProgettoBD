@@ -17,6 +17,7 @@ struct configuration {
 extern struct configuration conf;
 
 extern int parse_config(const char* path, struct configuration* conf);
+extern char *getInput(unsigned int lung, char *stringa, bool hide);
 extern bool yesOrNo(char *domanda, char yes, char no, bool predef, bool insensitive);
 extern char* multiChoice(const char *domanda, const char* choices[], int num);
 extern void print_error (MYSQL *conn, const char *message);
@@ -28,3 +29,4 @@ extern void dump_result_set(MYSQL *conn, MYSQL_STMT *stmt, char *title);
 extern void run_as_system_user(MYSQL *conn);
 extern void run_as_driver(MYSQL *conn);
 extern void run_as_administrator(MYSQL *conn);
+

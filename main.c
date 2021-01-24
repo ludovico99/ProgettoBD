@@ -88,10 +88,10 @@ err2:
 int main(void) {
 	role_t role;
 
-	/*if (!parse_config("Users/Login.json", &conf)) {
+	if (!parse_config("Users/Login.json", &conf)) {
 		fprintf(stderr, "Unable to load login configuration\n");
 		exit(EXIT_FAILURE);
-	}*/
+	}
 
 	conn = mysql_init(NULL);
 	if (conn == NULL) {
@@ -99,27 +99,16 @@ int main(void) {
 		exit(EXIT_FAILURE);
 	}
 
-	conf.host = "localhost";
-	conf.db_username = "Login";
-	conf.db_password = "login";
-	conf.database = "progetto";
-	conf.port = 3306;
 
 	if (mysql_real_connect(conn, conf.host, conf.db_username, conf.db_password, conf.database, conf.port, NULL, CLIENT_MULTI_STATEMENTS | CLIENT_MULTI_RESULTS) == NULL) {
 		fprintf(stderr, "mysql_real_connect() failed\n");
 		mysql_close(conn);
 		exit(EXIT_FAILURE);
 	}
-	char* username = (char *)malloc(sizeof(char)*128);
-	char* password = (char*)malloc(sizeof(char)*128);
 	printf("Username: ");
-	fgets(username, 128,stdin);
+	getInput(128, conf.username, false);
 	printf("Password: ");
-	fgets(password, 128, stdin);
-	*(username + strlen(username) - 1) = '\0';
-	*(password + strlen(password) - 1) = '\0';
-	sprintf(conf.username,"%s",username);
-	sprintf(conf.password, "%s", password);
+	getInput(128, conf.password, true);
 	role = attempt_login(conn, conf.username,conf.password);
 
 	switch (role) {
