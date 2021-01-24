@@ -1,8 +1,6 @@
 // COTRALZ.cpp : Questo file contiene la funzione 'main', in cui inizia e termina l'esecuzione del programma.
 //
 
-#include <iostream>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -120,8 +118,8 @@ int main(void) {
 	fgets(password, 128, stdin);
 	*(username + strlen(username) - 1) = '\0';
 	*(password + strlen(password) - 1) = '\0';
-	sprintf_s(conf.username,"%s",username);
-	sprintf_s(conf.password, "%s", password);
+	sprintf(conf.username,"%s",username);
+	sprintf(conf.password, "%s", password);
 	role = attempt_login(conn, conf.username,conf.password);
 
 	switch (role) {

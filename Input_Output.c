@@ -155,7 +155,7 @@ char* multiChoice(const char* domanda, const char* choices[], int num)
 			}*/
 			if (i >= 9)
 			{
-				if ((c[0] == choices[i][0]) and (c[1] == choices[i][1]))
+				if ((c[0] == choices[i][0]) && (c[1] == choices[i][1]))
 					return c;
 			}
 			else {

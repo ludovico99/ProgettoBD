@@ -166,13 +166,13 @@ static void create_user(MYSQL* conn)
 	// Convert role into enum value
 	switch (r) {
 	case 1:
-		strcpy_s(ruolo, "AmministatoreServizio");
+		strcpy(ruolo, "AmministatoreServizio");
 		break;
 	case 2:
-		strcpy_s(ruolo, "Conducente");
+		strcpy(ruolo, "Conducente");
 		break;
 	case 3:
-		strcpy_s(ruolo, "UtenteSistema");
+		strcpy(ruolo, "UtenteSistema");
 		break;
 	default:
 		fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
