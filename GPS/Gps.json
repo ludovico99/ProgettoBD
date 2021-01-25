@@ -1,0 +1,7 @@
+{
+	"host": "localhost",
+	"username": "GPS",
+	"password": "globalpositioningsystem",
+	"port": 3306,
+	"database": "progetto"
+}
