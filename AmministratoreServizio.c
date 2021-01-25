@@ -9,10 +9,10 @@ static void add_realRoute(MYSQL* conn){
 	MYSQL_BIND param[4];
 	char buff[46];
 	
-	char codiceTratta[5];
+	char codiceTratta[6];
 	MYSQL_TIME dataPartenza[1];
 	MYSQL_TIME orarioPartenza[1];
-	char veicoloAssociato[4];
+	char veicoloAssociato[5];
 	//memset(dataPartenza, 0, sizeof(dataPartenza));
 	dataPartenza->time_type = MYSQL_TIMESTAMP_DATE;
 	//memset(orarioPartenza, 0, sizeof(orarioPartenza));
@@ -20,8 +20,8 @@ static void add_realRoute(MYSQL* conn){
 	
 	
 	
-	printf("\nInserisci il codice di tratta: ");
-	getInput(5, codiceTratta, false);
+	printf("\nInserisci il codice di tratta (5 cifre): ");
+	getInput(6, codiceTratta, false);
 	printf("\nInserisci l'anno di partenza: ");
 	getInput(46, buff, false);
 	dataPartenza->year = atoi(buff);
@@ -37,8 +37,8 @@ static void add_realRoute(MYSQL* conn){
 	printf("\nInserisci i minuti di partenza: ");
 	getInput(46, buff, false);
 	orarioPartenza->minute = atoi(buff);
-	printf("\nInserisci il veicolo assegnato a questa tratta: ");
-	getInput(4, veicoloAssociato, false);
+	printf("\nInserisci il veicolo assegnato a questa tratta (4 cifre): ");
+	getInput(5, veicoloAssociato, false);
 	orarioPartenza->day=0;
 	orarioPartenza->second=0;
 	orarioPartenza->second_part=0;
@@ -55,7 +55,7 @@ static void add_realRoute(MYSQL* conn){
 	
 	param[0].buffer_type = MYSQL_TYPE_STRING;
 	param[0].buffer = codiceTratta;
-	param[0].buffer_length = sizeof(codiceTratta);
+	param[0].buffer_length = strlen(codiceTratta);
 	
 	param[1].buffer_type = MYSQL_TYPE_DATE;
 	param[1].buffer = dataPartenza;
@@ -67,8 +67,7 @@ static void add_realRoute(MYSQL* conn){
 	
 	param[3].buffer_type = MYSQL_TYPE_STRING;
 	param[3].buffer = veicoloAssociato;
-	param[3].buffer_length = sizeof(veicoloAssociato);
-	orarioPartenza->second = 0;
+	param[3].buffer_length = strlen(veicoloAssociato);
 
 	
 
@@ -95,15 +94,15 @@ static void add_vehicle(MYSQL* conn){
 	char buff[46];
 	
 	// Get the required information
-	char veicolo[4];
+	char veicolo[5];
 	MYSQL_TIME dataAcquisto[1];
 	//memset(dataAcquisto, 0, sizeof(dataAcquisto));
 	dataAcquisto->time_type = MYSQL_TIMESTAMP_DATE;
 	
 	
 	
-	printf("\nInserisci la matricola del veicolo: ");
-	getInput(4, veicolo, false);
+	printf("\nInserisci la matricola del veicolo (4 cifre): ");
+	getInput(5, veicolo, false);
 	printf("\nInserisci l'anno di acquisto del veicolo: ");
 	getInput(46, buff, false);
 	dataAcquisto->year = atoi(buff);
@@ -125,7 +124,7 @@ static void add_vehicle(MYSQL* conn){
 	
 	param[0].buffer_type = MYSQL_TYPE_STRING;
 	param[0].buffer = veicolo;
-	param[0].buffer_length = sizeof(veicolo);
+	param[0].buffer_length = strlen(veicolo);
 
 	param[1].buffer_type = MYSQL_TYPE_DATE;
 	param[1].buffer = dataAcquisto;
@@ -154,17 +153,17 @@ static void add_route(MYSQL* conn){
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[3];
 	
-	char codiceTratta[5];
-	char primaFermata[5];
-	char ultimaFermata[5];
+	char codiceTratta[6];
+	char primaFermata[6];
+	char ultimaFermata[6];
 	
 	
-	printf("\nInserisci il codice di tratta: ");
-	getInput(5, codiceTratta, false);
-	printf("\nInserisci la prima fermata: ");
-	getInput(5, primaFermata, false);
-	printf("\nInserisci l'ultima fermata: ");
-	getInput(5, ultimaFermata, false);
+	printf("\nInserisci il codice di tratta(5 cifre): ");
+	getInput(6, codiceTratta, false);
+	printf("\nInserisci la prima fermata (5 cifre): ");
+	getInput(6, primaFermata, false);
+	printf("\nInserisci l'ultima fermata (5 cifre): ");
+	getInput(6, ultimaFermata, false);
 
 	// Prepare stored procedure call
 	if (!setup_prepared_stmt(&prepared_stmt, "call Aggiungi_TrattaStradale(?, ?, ?)", conn)) {
@@ -176,15 +175,15 @@ static void add_route(MYSQL* conn){
 	
 	param[0].buffer_type = MYSQL_TYPE_STRING;
 	param[0].buffer = codiceTratta;
-	param[0].buffer_length = sizeof(codiceTratta);
+	param[0].buffer_length = strlen(codiceTratta);
 	
 	param[1].buffer_type = MYSQL_TYPE_STRING;
 	param[1].buffer = primaFermata;
-	param[1].buffer_length = sizeof(primaFermata);
+	param[1].buffer_length = strlen(primaFermata);
 	
 	param[2].buffer_type = MYSQL_TYPE_STRING;
 	param[2].buffer = ultimaFermata;
-	param[2].buffer_length = sizeof(ultimaFermata);
+	param[2].buffer_length = strlen(ultimaFermata);
 
 	
 
@@ -213,17 +212,17 @@ static void add_vehicleMaintenance(MYSQL* conn){
 	char buff[46];
 	
 	// Get the required information
-	char veicolo[4];
+	char veicolo[5];
 	MYSQL_TIME data[1];
 	float costo;
-	char tipoIntervento[45];
+	char tipoIntervento[46];
 	//memset(data, 0, sizeof(data));
 	data->time_type = MYSQL_TIMESTAMP_DATE;
 	
 	
 	
-	printf("\nInserisci la matricola del veicolo: ");
-	getInput(4, veicolo, false);
+	printf("\nInserisci la matricola del veicolo (4 cifre): ");
+	getInput(5, veicolo, false);
 	printf("\nInserisci l'anno in cui è avvenuta la manutenzione: ");
 	getInput(46, buff, false);
 	data->year = atoi(buff);
@@ -237,7 +236,7 @@ static void add_vehicleMaintenance(MYSQL* conn){
 	getInput(46, buff, false);
 	costo = (float)atof(buff);
 	printf("\nInserisci informazioni sul tipo d'intervento offerto dalla manutenzione: ");
-	getInput(45, tipoIntervento, false);
+	getInput(46, tipoIntervento, false);
 
 	// Prepare stored procedure call
 	if (!setup_prepared_stmt(&prepared_stmt, "call Aggiungi_Manutenzione(?, ?, ?, ?)", conn)) {
@@ -249,7 +248,7 @@ static void add_vehicleMaintenance(MYSQL* conn){
 	
 	param[0].buffer_type = MYSQL_TYPE_STRING;
 	param[0].buffer = veicolo;
-	param[0].buffer_length = sizeof(veicolo);
+	param[0].buffer_length = strlen(veicolo);
 
 	param[1].buffer_type = MYSQL_TYPE_DATE;
 	param[1].buffer = data;
@@ -261,7 +260,7 @@ static void add_vehicleMaintenance(MYSQL* conn){
 	
 	param[3].buffer_type = MYSQL_TYPE_VAR_STRING;
 	param[3].buffer = tipoIntervento;
-	param[3].buffer_length = sizeof(tipoIntervento);
+	param[3].buffer_length = strlen(tipoIntervento);
 
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
@@ -285,22 +284,22 @@ static void add_busStop(MYSQL* conn)
 {
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[3];
-	char buff[128];
+	char buff[10];
 
 	// Input for the registration routine
-	char fermata[5];
+	char fermata[6];
 	float latitudine;
 	float longitudine;
 	
 
 	// Get the required information
-	printf("\nInserisci il codice di fermata: ");
-	getInput(5, fermata, false);
+	printf("\nInserisci il codice di fermata(5 cifre): ");
+	getInput(6, fermata, false);
 	printf("\nInserisci latitudine: ");
-	getInput(128, buff, false);
+	getInput(10, buff, false);
 	latitudine = (float)atof(buff);
 	printf("\nInserisci longitudine: ");
-	getInput(128, buff, false);
+	getInput(10, buff, false);
 	longitudine = (float)atof(buff);
 
 	// Prepare stored procedure call
@@ -313,7 +312,7 @@ static void add_busStop(MYSQL* conn)
 	
 	param[0].buffer_type = MYSQL_TYPE_STRING;
 	param[0].buffer = fermata;
-	param[0].buffer_length = sizeof(fermata);
+	param[0].buffer_length = strlen(fermata);
 
 	param[1].buffer_type = MYSQL_TYPE_FLOAT;
 	param[1].buffer = &latitudine;
@@ -348,15 +347,15 @@ static void add_driver(MYSQL* conn)
 	MYSQL_BIND param[9];
 
 	char buff[10];
-	char cf[16];
-	char username[45];
-	char nome[45];
-	char cognome[45];
+	char cf[17];
+	char username[46];
+	char nome[46];
+	char cognome[46];
 	MYSQL_TIME data_nascita[1];
 	MYSQL_TIME scadenza_patente[1];
-	char luogo_nascita[45];
-	char numero_patente[10];
-	char veicolo_Assegnato[4];
+	char luogo_nascita[46];
+	char numero_patente[11];
+	char veicolo_Assegnato[5];
 	//memset(data_nascita, 0, sizeof(data_nascita));
 	//memset(scadenza_patente, 0, sizeof(scadenza_patente));
 	data_nascita->time_type = MYSQL_TIMESTAMP_DATE;
@@ -364,42 +363,37 @@ static void add_driver(MYSQL* conn)
 	
 	// Get the required information
 	printf("\nInserisci codice fiscale (16 caratteri): ");
-	getInput(16, cf, false);
+	getInput(17, cf, false);
 	printf("\nInserisci username (valido): ");
-	getInput(45, username, false);
+	getInput(46, username, false);
 	printf("\nInserisci nome: ");
-	getInput(45, nome, false);
+	getInput(46, nome, false);
 	printf("\nInserisci cognome: ");
-	getInput(45, cognome, false);
+	getInput(46, cognome, false);
 	printf("\nInserisci anno di nascita: ");
 	getInput(10, buff, false);
-	data_nascita->year = atoi(buff);
-	printf("%d",data_nascita->year);
+	data_nascita->year =atoi(buff);
 	printf("\nInserisci mese di nascita: ");
 	getInput(10, buff, false);
-	data_nascita->month =atoi(buff);
-	printf("%d",data_nascita->month);
+	data_nascita->month = atoi(buff);
 	printf("\nInserisci giorno di nascita: ");
 	getInput(10, buff, false);
 	data_nascita->day = atoi(buff);
-	printf("%d",data_nascita->day);
 	printf("\nInserisci luogo di nascita: ");
-	getInput(45, luogo_nascita, false);
-	printf("\nInserisci numero patente: ");
-	getInput(10, numero_patente, false);
+	getInput(46, luogo_nascita, false);
+	printf("\nInserisci numero patente(10 caratteri): ");
+	getInput(11, numero_patente, false);
 	printf("\nInserisci anno di scadenza della patente: ");
 	getInput(10, buff, false);
 	scadenza_patente->year = atoi(buff);
-	printf("%d",scadenza_patente->year);
 	printf("\nInserisci mese di scadenza della patente: ");
 	getInput(10, buff, false);
 	scadenza_patente->month = atoi(buff);
-	printf("%d",scadenza_patente->month);
 	printf("\nInserisci giorno di scadenza della patente: ");
 	getInput(10, buff, false);
 	scadenza_patente->day = atoi(buff);
-	printf("\nInserisci il veicolo assegnato : ");
-	getInput(4, veicolo_Assegnato, false);
+	printf("\nInserisci il veicolo assegnato(4 cifre) : ");
+	getInput(5, veicolo_Assegnato, false);
 
 	// Prepare stored procedure call
 	if (!setup_prepared_stmt(&prepared_stmt, "call Aggiungi_Conducente(?, ?, ?, ?, ?, ?, ?, ?, ?)", conn)) {
@@ -411,19 +405,19 @@ static void add_driver(MYSQL* conn)
 
 	param[0].buffer_type = MYSQL_TYPE_STRING;
 	param[0].buffer = cf;
-	param[0].buffer_length = sizeof(cf);
+	param[0].buffer_length = strlen(cf);
 
 	param[1].buffer_type = MYSQL_TYPE_VAR_STRING;
 	param[1].buffer = username;
-	param[1].buffer_length = sizeof(username);
+	param[1].buffer_length = strlen(username);
 
 	param[2].buffer_type = MYSQL_TYPE_VAR_STRING;
 	param[2].buffer = nome;
-	param[2].buffer_length = sizeof(nome);
+	param[2].buffer_length = strlen(nome);
 
 	param[3].buffer_type = MYSQL_TYPE_VAR_STRING;
 	param[3].buffer = cognome;
-	param[3].buffer_length = sizeof(cognome);
+	param[3].buffer_length = strlen(cognome);
 
 	param[4].buffer_type = MYSQL_TYPE_DATE;
 	param[4].buffer = data_nascita;
@@ -431,11 +425,11 @@ static void add_driver(MYSQL* conn)
 
 	param[5].buffer_type = MYSQL_TYPE_VAR_STRING;
 	param[5].buffer = luogo_nascita;
-	param[5].buffer_length = sizeof(luogo_nascita);
+	param[5].buffer_length = strlen(luogo_nascita);
 
 	param[6].buffer_type = MYSQL_TYPE_STRING;
 	param[6].buffer = numero_patente;
-	param[6].buffer_length = sizeof(numero_patente);
+	param[6].buffer_length = strlen(numero_patente);
 
 	param[7].buffer_type = MYSQL_TYPE_DATE;
 	param[7].buffer = scadenza_patente;
@@ -443,10 +437,10 @@ static void add_driver(MYSQL* conn)
 
 	param[8].buffer_type = MYSQL_TYPE_STRING;
 	param[8].buffer = veicolo_Assegnato;
-	param[8].buffer_length = sizeof(veicolo_Assegnato);
+	param[8].buffer_length = strlen(veicolo_Assegnato);
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
-		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for Driver insertion\n", true);
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for driver insertion\n", true);
 	}
 
 
@@ -544,7 +538,7 @@ static void add_waypoint(MYSQL* conn)
 {
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[2];
-	char buff[128];
+	char buff[20];
 
 	// Input for the registration routine
 	float latitudine;
@@ -553,10 +547,10 @@ static void add_waypoint(MYSQL* conn)
 
 	// Get the required information
 	printf("\nInserisci latitudine: ");
-	getInput(128, buff, false);
+	getInput(20, buff, false);
 	latitudine = (float)atof(buff);
 	printf("\nInserisci longitudine: ");
-	getInput(128, buff, false);
+	getInput(20, buff, false);
 	longitudine = (float)atof(buff);
 
 	// Prepare stored procedure call
