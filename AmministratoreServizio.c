@@ -4,6 +4,140 @@
 
 #include "defines.h"
 
+static void add_vehicleMaintenance(MYSQL* conn){
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[4];
+	char buff[46];
+	
+	// Get the required information
+	char veicolo[4];
+	MYSQL_TIME data[1];
+	float costo;
+	char tipoIntervento[45];
+	memset(data, 0, sizeof(data));
+	data->time_type = MYSQL_TIMESTAMP_DATE;
+	
+	
+	
+	printf("\nInserisci la matricola del veicolo: ");
+	getInput(4, veicolo, false);
+	printf("\nInserisci l'anno in cui è avvenuta la manutenzione: ");
+	getInput(46, buff, false);
+	data->year = atoi(buff);
+	printf("\nInserisci il mese in cui è avvenuta la manutenzione: ");
+	getInput(46, buff, false);
+	data->month = atoi(buff);
+	printf("\nInserisci il giorno in cui è avvenuta la manutenzione: ");
+	getInput(46, buff, false);
+	data->day = atoi(buff);
+	printf("\nInserisci il costo della manutenzione: ");
+	getInput(46, buff, false);
+	costo = (float)atof(buff);
+	printf("\nInserisci informazioni sul tipo d'intervento offerto dalla manutenzione: ");
+	getInput(45, tipoIntervento, false);
+
+	// Prepare stored procedure call
+	if (!setup_prepared_stmt(&prepared_stmt, "call Aggiungi_Manutenzione(?, ?, ?, ?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize maintenance insertion statement\n", false);
+	}
+
+	// Prepare parameters
+	memset(param, 0, sizeof(param));
+	
+	param[0].buffer_type = MYSQL_TYPE_STRING;
+	param[0].buffer = veicolo;
+	param[0].buffer_length = sizeof(veicolo);
+
+	param[1].buffer_type = MYSQL_TYPE_DATE;
+	param[1].buffer = data;
+	param[1].buffer_length = sizeof(data);
+
+	param[2].buffer_type = MYSQL_TYPE_FLOAT;
+	param[2].buffer = &costo;
+	param[2].buffer_length = sizeof(costo);
+	
+	param[3].buffer_type = MYSQL_TYPE_VAR_STRING;
+	param[3].buffer = tipoIntervento;
+	param[3].buffer_length = sizeof(tipoIntervento);
+
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for maintenace insertion\n", true);
+	}
+
+	
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while adding the vehicle maintenace.");
+		goto out;
+	}
+	printf("vehicle maintenance correctly inserted\n");
+
+out:
+	mysql_stmt_close(prepared_stmt);
+}
+
+
+
+static void add_busStop(MYSQL* conn)
+{
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[3];
+	char buff[128];
+
+	// Input for the registration routine
+	char fermata[5];
+	float latitudine;
+	float longitudine;
+	
+
+	// Get the required information
+	printf("\nInserisci il codice di fermata: ");
+	getInput(5, fermata, false);
+	printf("\nInserisci latitudine: ");
+	getInput(128, buff, false);
+	latitudine = (float)atof(buff);
+	printf("\nInserisci longitudine: ");
+	getInput(128, buff, false);
+	longitudine = (float)atof(buff);
+
+	// Prepare stored procedure call
+	if (!setup_prepared_stmt(&prepared_stmt, "call Aggiungi_Fermata(?, ?, ?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize waypoint insertion statement\n", false);
+	}
+
+	// Prepare parameters
+	memset(param, 0, sizeof(param));
+	
+	param[0].buffer_type = MYSQL_TYPE_STRING;
+	param[0].buffer = fermata;
+	param[0].buffer_length = sizeof(fermata);
+
+	param[1].buffer_type = MYSQL_TYPE_FLOAT;
+	param[1].buffer = &latitudine;
+	param[1].buffer_length = sizeof(latitudine);
+
+	param[2].buffer_type = MYSQL_TYPE_FLOAT;
+	param[2].buffer = &longitudine;
+	param[2].buffer_length = sizeof(longitudine);
+
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for bus stop insertion\n", true);
+	}
+
+	
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while adding the bus stop.");
+		goto out;
+	}
+	printf("Bus stop correctly inserted\n");
+
+out:
+	mysql_stmt_close(prepared_stmt);
+}
+
+
+
 
 static void add_driver(MYSQL* conn)
 {
@@ -219,7 +353,6 @@ static void add_waypoint(MYSQL* conn)
 	printf("\nInserisci latitudine: ");
 	getInput(128, buff, false);
 	latitudine = (float)atof(buff);
-	fflush(stdin);
 	printf("\nInserisci longitudine: ");
 	getInput(128, buff, false);
 	longitudine = (float)atof(buff);
@@ -266,10 +399,16 @@ void run_as_administrator(MYSQL* conn)
 	int op;
 
 	printf("Switching to administrative role...\n");
-
-	conf.db_username = "AmministratoreServizio";
+	
+	if(!parse_config("Users/AmministratoreServizio.json", &conf)) {
+		fprintf(stderr, "Unable to load administrator configuration\n");
+		exit(EXIT_FAILURE);
+	}
+	
+	
+	/*conf.db_username = "AmministratoreServizio";
 	conf.db_password = "amministratoreservizio";
-	conf.database = "progetto";
+	conf.database = "progetto";*/
 
 
 	if (mysql_change_user(conn, conf.db_username, conf.db_password, conf.database)) {
@@ -327,9 +466,10 @@ void run_as_administrator(MYSQL* conn)
 			add_driver(conn);
 			break;
 		case 10:
-			//subscribe_to_degree(conn);
+			add_busStop(conn);
 			break;
 		case 11:
+			add_vehicleMaintenance(conn);
 			break;
 		case 12:
 			break;

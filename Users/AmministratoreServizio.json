@@ -3,5 +3,5 @@
 	"username": "AmministratoreServizio",
 	"password": "amministratoreservizio",
 	"port": 3306,
-	"database": "gestione-esami"
+	"database": "progetto"
 }
