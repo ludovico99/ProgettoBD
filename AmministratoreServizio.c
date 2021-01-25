@@ -4,6 +4,212 @@
 
 #include "defines.h"
 
+static void replace_workShift(MYSQL* conn){
+	MYSQL_STMT *prepared_stmt;
+	MYSQL_BIND param[4];
+	int status;
+	bool first = true;
+	char buff[46];
+	
+	char conducente_cf[17];
+	char conducente_sostituto[17];
+	MYSQL_TIME inizioTurno[1];
+	MYSQL_TIME fineTurno[1];
+	
+	
+	inizioTurno->second=0;
+	inizioTurno->second_part=0;
+	inizioTurno->time_type=MYSQL_TIMESTAMP_DATETIME;
+	fineTurno->second=0;
+	fineTurno->second_part=0;
+	fineTurno->time_type=MYSQL_TIMESTAMP_DATETIME;
+	
+	
+	printf("\nInserisci il codice fiscale del conducente da sostituire: ");
+	getInput(17,conducente_cf,false);
+	printf("\nInserisci il codice fiscale del conducente sostituto (nuovo): ");
+	getInput(17, conducente_sostituto,false);
+	printf("\nInserisci l'anno di inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->year = atoi(buff);
+	printf("\nInserisci il mese di inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->month = atoi(buff);
+	printf("\nInserisci il giorno di inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->day = atoi(buff);
+	printf("\nInserisci l'ora di inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->hour = atoi(buff);
+	printf("\nInserisci i minuti relativi all'inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->minute = atoi(buff);
+	
+	printf("\nInserisci l'anno di fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->year = atoi(buff);
+	printf("\nInserisci il mese di fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->month = atoi(buff);
+	printf("\nInserisci il giorno di fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->day = atoi(buff);
+	printf("\nInserisci l'ora di fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->hour = atoi(buff);
+	printf("\nInserisci i minuti relativi alla fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->minute = atoi(buff);	
+	
+	// Prepare stored procedure call
+	if(!setup_prepared_stmt(&prepared_stmt, "call SostituzioneTurno(?, ?, ?, ?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to replace driver statements\n", false);
+	}
+
+	// Prepare parameters
+	memset(param, 0, sizeof(param));
+	
+	param[0].buffer_type = MYSQL_TYPE_STRING;
+	param[0].buffer = conducente_sostituto;
+	param[0].buffer_length = strlen(conducente_sostituto);
+	
+	param[1].buffer_type = MYSQL_TYPE_STRING;
+	param[1].buffer = conducente_cf;
+	param[1].buffer_length = strlen(conducente_cf);
+	
+	param[2].buffer_type = MYSQL_TYPE_DATETIME;
+	param[2].buffer = inizioTurno;
+	param[2].buffer_length = sizeof(inizioTurno);
+	
+	param[3].buffer_type = MYSQL_TYPE_DATETIME;
+	param[3].buffer = fineTurno;
+	param[3].buffer_length = sizeof(fineTurno);
+	
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for replacing driver\n", true);
+	}
+
+	// Run procedure
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while retrieving the driver replacement.");
+		goto out;
+	}
+
+	printf("driver replacement procedure correctly done\n");
+
+    out:
+	mysql_stmt_close(prepared_stmt);
+}
+		
+
+
+static void find_driver_shiftReplacement(MYSQL *conn) {
+	MYSQL_STMT *prepared_stmt;
+	MYSQL_BIND param[3];
+	int status;
+	char buff[46];
+	
+	char conducente_cf[17];
+	MYSQL_TIME inizioTurno[1];
+	MYSQL_TIME fineTurno[1];
+	
+	
+	inizioTurno->second=0;
+	inizioTurno->second_part=0;
+	inizioTurno->time_type=MYSQL_TIMESTAMP_DATETIME;
+	fineTurno->second=0;
+	fineTurno->second_part=0;
+	fineTurno->time_type=MYSQL_TIMESTAMP_DATETIME;
+	
+	
+	printf("\nInserisci il codice fiscale del conducente da sostituire: ");
+	getInput(17,conducente_cf,false);
+	printf("\nInserisci l'anno di inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->year = atoi(buff);
+	printf("\nInserisci il mese di inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->month = atoi(buff);
+	printf("\nInserisci il giorno di inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->day = atoi(buff);
+	printf("\nInserisci l'ora di inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->hour = atoi(buff);
+	printf("\nInserisci i minuti relativi all'inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->minute = atoi(buff);
+	
+	printf("\nInserisci l'anno di fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->year = atoi(buff);
+	printf("\nInserisci il mese di fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->month = atoi(buff);
+	printf("\nInserisci il giorno di fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->day = atoi(buff);
+	printf("\nInserisci l'ora di fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->hour = atoi(buff);
+	printf("\nInserisci i minuti relativi alla fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->minute = atoi(buff);	
+	
+	// Prepare stored procedure call
+	if(!setup_prepared_stmt(&prepared_stmt, "call Cerca_ConducentiValidiperLaSostituzione(?,?,?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to find drivers for replacement statements\n", false);
+	}
+
+	// Prepare parameters
+	memset(param, 0, sizeof(param));
+	
+	param[0].buffer_type = MYSQL_TYPE_STRING;
+	param[0].buffer = conducente_cf;
+	param[0].buffer_length = strlen(conducente_cf);
+	
+	param[1].buffer_type = MYSQL_TYPE_DATETIME;
+	param[1].buffer = inizioTurno;
+	param[1].buffer_length = sizeof(inizioTurno);
+	
+	param[2].buffer_type = MYSQL_TYPE_DATETIME;
+	param[2].buffer = fineTurno;
+	param[2].buffer_length = sizeof(fineTurno);
+	
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for find drivers for replacement\n", true);
+	}
+
+	// Run procedure
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while retrieving the find drivers for replacement.");
+		goto out;
+	}
+
+	// We have multiple result sets here!
+	do {
+		// Skip OUT variables (although they are not present in the procedure...)
+		if(conn->server_status & SERVER_PS_OUT_PARAMS) {
+			goto next;
+		}
+		
+		
+		dump_result_set(conn, prepared_stmt, "Conducenti validi per la sostituzione");
+		
+		// more results? -1 = no, >0 = error, 0 = yes (keep looking)
+	    next:
+		status = mysql_stmt_next_result(prepared_stmt);
+		if (status > 0)
+			finish_with_stmt_error(conn, prepared_stmt, "Unexpected condition", true);
+		
+	} while (status == 0);
+	
+    out:
+	mysql_stmt_close(prepared_stmt);
+}
+	
 static void driver_healed (MYSQL *conn){
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[4];
@@ -1105,7 +1311,7 @@ void run_as_administrator(MYSQL* conn)
 			delete_workShift(conn);
 			break;
 		case 4:
-			//subscribe_to_degree(conn);
+			replace_workShift(conn);
 			break;
 		case 5:
 			emissione_biglietto(conn);
@@ -1117,7 +1323,7 @@ void run_as_administrator(MYSQL* conn)
 			driver_healed(conn);
 			break;
 		case 8:
-			//add_student(conn);
+			find_driver_shiftReplacement(conn);
 			break;
 		case 9:
 			add_driver(conn);
