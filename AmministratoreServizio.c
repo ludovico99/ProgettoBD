@@ -4,6 +4,463 @@
 
 #include "defines.h"
 
+static void driver_healed (MYSQL *conn){
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[4];
+
+	char codiceFiscale[17];
+	
+	printf("\nInserisci il codice fiscale del conducente guarito: ");
+	getInput(17, codiceFiscale, false);
+	
+	if (!setup_prepared_stmt(&prepared_stmt, "call ConducenteGuarito(?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize driver healed statements\n", false);
+	}
+
+	// Prepare parameters
+	memset(param, 0, sizeof(param));
+	
+	param[0].buffer_type = MYSQL_TYPE_STRING;
+	param[0].buffer = codiceFiscale;
+	param[0].buffer_length = strlen(codiceFiscale);
+	
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for driver healed procedure\n", true);
+	}
+
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while executing the driver healed procedure.");
+		goto out;
+	}
+	printf("driver healed procedure correctly done\n");
+
+out:
+	mysql_stmt_close(prepared_stmt);
+}
+
+
+
+static void link_vehicleWithRealRoute(MYSQL* conn){
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[4];
+	char buff[46];
+	
+	char codiceTratta[6];
+	MYSQL_TIME dataPartenza[1];
+	MYSQL_TIME orarioPartenza[1];
+	char veicoloAssociato[5];
+	dataPartenza->time_type = MYSQL_TIMESTAMP_DATE;
+	orarioPartenza->time_type = MYSQL_TIMESTAMP_TIME;
+	
+	
+	
+	printf("\nInserisci il codice di tratta (5 cifre): ");
+	getInput(6, codiceTratta, false);
+	printf("\nInserisci l'anno di partenza: ");
+	getInput(46, buff, false);
+	dataPartenza->year = atoi(buff);
+	printf("\nInserisci il mese di partenza: ");
+	getInput(46, buff, false);
+	dataPartenza->month = atoi(buff);
+	printf("\nInserisci il giorno di partenza: ");
+	getInput(46, buff, false);
+	dataPartenza->day = atoi(buff);
+	printf("\nInserisci l'ora di partenza: ");
+	getInput(46, buff, false);
+	orarioPartenza->hour = atoi(buff);
+	printf("\nInserisci i minuti relativi all'orario partenza: ");
+	getInput(46, buff, false);
+	orarioPartenza->minute = atoi(buff);
+	printf("\nInserisci il veicolo che si vuole assegnare a questa tratta (4 cifre): ");
+	getInput(5, veicoloAssociato, false);
+	orarioPartenza->day=0;
+	orarioPartenza->second=0;
+	orarioPartenza->second_part=0;
+
+
+
+	// Prepare stored procedure call
+	if (!setup_prepared_stmt(&prepared_stmt, "call AssociazioneVeicoli_TrattaReale(?, ?, ?, ?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize real route insertion statement\n", false);
+	}
+
+	// Prepare parameters
+	memset(param, 0, sizeof(param));
+	
+	param[0].buffer_type = MYSQL_TYPE_STRING;
+	param[0].buffer = codiceTratta;
+	param[0].buffer_length = strlen(codiceTratta);
+	
+	param[1].buffer_type = MYSQL_TYPE_STRING;
+	param[1].buffer = veicoloAssociato;
+	param[1].buffer_length = strlen(veicoloAssociato);
+	
+	param[2].buffer_type = MYSQL_TYPE_TIME;
+	param[2].buffer = orarioPartenza;
+	param[2].buffer_length = sizeof(orarioPartenza);
+	
+	param[3].buffer_type = MYSQL_TYPE_DATE;
+	param[3].buffer = dataPartenza;
+	param[3].buffer_length = sizeof(dataPartenza);
+	
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for linking vehicle with real route insertion\n", true);
+	}
+
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while adding the link vehicle with real route.");
+		goto out;
+	}
+	printf("link vehicle with real route correctly inserted\n");
+
+out:
+	mysql_stmt_close(prepared_stmt);
+}
+
+	
+
+static void add_newWorkShift(MYSQL *conn) {
+	MYSQL_STMT *prepared_stmt;
+	MYSQL_BIND param[3];
+	char buff[46];
+	
+	
+	char conducente_cf[17];
+	MYSQL_TIME inizioTurno[1];
+	MYSQL_TIME fineTurno[1];
+	
+	
+	inizioTurno->second=0;
+	inizioTurno->second_part=0;
+	inizioTurno->time_type=MYSQL_TIMESTAMP_DATETIME;
+	fineTurno->second=0;
+	fineTurno->second_part=0;
+	fineTurno->time_type=MYSQL_TIMESTAMP_DATETIME;
+	
+	
+	printf("\nInserisci il codice fiscale dell'utente: ");
+	getInput(17,conducente_cf,false);
+	printf("\nInserisci l'anno di inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->year = atoi(buff);
+	printf("\nInserisci il mese di inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->month = atoi(buff);
+	printf("\nInserisci il giorno di inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->day = atoi(buff);
+	printf("\nInserisci l'ora di inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->hour = atoi(buff);
+	printf("\nInserisci i minuti relativi all'inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->minute = atoi(buff);
+	
+	printf("\nInserisci l'anno di fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->year = atoi(buff);
+	printf("\nInserisci il mese di fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->month = atoi(buff);
+	printf("\nInserisci il giorno di fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->day = atoi(buff);
+	printf("\nInserisci l'ora di fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->hour = atoi(buff);
+	printf("\nInserisci i minuti relativi alla fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->minute = atoi(buff);
+	
+	if(!setup_prepared_stmt(&prepared_stmt, "call Aggiungi_NuovoTurno_Conducente(?,?,?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize work shift statement\n", false);
+	}
+	
+	
+	// Prepare parameters
+	memset(param, 0, sizeof(param));
+
+	param[0].buffer_type = MYSQL_TYPE_STRING;
+	param[0].buffer = conducente_cf;
+	param[0].buffer_length = strlen(conducente_cf);
+	
+	param[1].buffer_type = MYSQL_TYPE_DATETIME;
+	param[1].buffer = inizioTurno;
+	param[1].buffer_length = sizeof(inizioTurno);
+	
+	param[2].buffer_type = MYSQL_TYPE_DATETIME;
+	param[2].buffer = fineTurno;
+	param[2].buffer_length = sizeof(fineTurno);
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for work shift\n", true);
+	}
+
+	// Run procedure
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while retrieving the work shift.");
+		goto out;
+	}
+
+	printf("Work shift correctly inserted\n");
+    out:
+	mysql_stmt_close(prepared_stmt);
+}
+
+static void delete_workShift(MYSQL *conn) {
+	MYSQL_STMT *prepared_stmt;
+	MYSQL_BIND param[3];
+	char buff[46];
+	
+	
+	char conducente_cf[17];
+	MYSQL_TIME inizioTurno[1];
+	MYSQL_TIME fineTurno[1];
+	
+	
+	inizioTurno->second=0;
+	inizioTurno->second_part=0;
+	inizioTurno->time_type=MYSQL_TIMESTAMP_DATETIME;
+	fineTurno->second=0;
+	fineTurno->second_part=0;
+	fineTurno->time_type=MYSQL_TIMESTAMP_DATETIME;
+	
+	
+	printf("\nInserisci il codice fiscale dell'utente: ");
+	getInput(17,conducente_cf,false);
+	printf("\nInserisci l'anno di inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->year = atoi(buff);
+	printf("\nInserisci il mese di inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->month = atoi(buff);
+	printf("\nInserisci il giorno di inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->day = atoi(buff);
+	printf("\nInserisci l'ora di inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->hour = atoi(buff);
+	printf("\nInserisci i minuti relativi all'inizio del turno: ");
+	getInput(46, buff, false);
+	inizioTurno->minute = atoi(buff);
+	
+	printf("\nInserisci l'anno di fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->year = atoi(buff);
+	printf("\nInserisci il mese di fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->month = atoi(buff);
+	printf("\nInserisci il giorno di fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->day = atoi(buff);
+	printf("\nInserisci l'ora di fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->hour = atoi(buff);
+	printf("\nInserisci i minuti relativi alla fine del turno: ");
+	getInput(46, buff, false);
+	fineTurno->minute = atoi(buff);
+	
+	if(!setup_prepared_stmt(&prepared_stmt, "call EliminareOrarioConducente(?,?,?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize work shift statement\n", false);
+	}
+	
+	
+	// Prepare parameters
+	memset(param, 0, sizeof(param));
+
+	param[0].buffer_type = MYSQL_TYPE_STRING;
+	param[0].buffer = conducente_cf;
+	param[0].buffer_length = strlen(conducente_cf);
+	
+	param[1].buffer_type = MYSQL_TYPE_DATETIME;
+	param[1].buffer = inizioTurno;
+	param[1].buffer_length = sizeof(inizioTurno);
+	
+	param[2].buffer_type = MYSQL_TYPE_DATETIME;
+	param[2].buffer = fineTurno;
+	param[2].buffer_length = sizeof(fineTurno);
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for work shift elimination\n", true);
+	}
+
+	// Run procedure
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while retrieving the work shift elimination.");
+		goto out;
+	}
+
+	printf("Work shift elimination correctly done\n");
+    out:
+	mysql_stmt_close(prepared_stmt);
+}
+
+static void emissione_abbonamento(MYSQL *conn) {
+	MYSQL_STMT *prepared_stmt;
+	MYSQL_BIND param[1];
+	int codiceAbbonamento;
+	
+	if(!setup_prepared_stmt(&prepared_stmt, "call EmissioneAbbonamento(?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize transport pass statement\n", false);
+	}
+
+	// Prepare parameters
+	memset(param, 0, sizeof(param));
+
+	param[0].buffer_type = MYSQL_TYPE_LONG;
+	param[0].buffer = &codiceAbbonamento;
+	param[0].buffer_length = sizeof(codiceAbbonamento);
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for transport pass\n", true);
+	}
+
+	// Run procedure
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while retrieving the transport pass.");
+		goto out;
+	}
+
+	memset(param, 0, sizeof(param));
+	param[0].buffer_type = MYSQL_TYPE_LONG; // OUT
+	param[0].buffer = &codiceAbbonamento;
+	param[0].buffer_length = sizeof(codiceAbbonamento);
+	
+	if(mysql_stmt_bind_result(prepared_stmt, param)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not retrieve output parameter", true);
+	}
+	
+	// Retrieve output parameter
+	if(mysql_stmt_fetch(prepared_stmt)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not buffer results", true);
+	}
+
+	printf("transport pass correctly added with ID %d...\n", codiceAbbonamento);
+
+    out:
+	mysql_stmt_close(prepared_stmt);
+}
+
+
+
+static void emissione_biglietto(MYSQL *conn) {
+	MYSQL_STMT *prepared_stmt;
+	MYSQL_BIND param[1];
+	int codiceBiglietto;
+	
+	if(!setup_prepared_stmt(&prepared_stmt, "call EmissioneBiglietto(?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize ticket issue statement\n", false);
+	}
+
+	// Prepare parameters
+	memset(param, 0, sizeof(param));
+
+	param[0].buffer_type = MYSQL_TYPE_LONG;
+	param[0].buffer = &codiceBiglietto;
+	param[0].buffer_length = sizeof(codiceBiglietto);
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for ticket issue\n", true);
+	}
+
+	// Run procedure
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while retrieving the ticket issue.");
+		goto out;
+	}
+
+	memset(param, 0, sizeof(param));
+	param[0].buffer_type = MYSQL_TYPE_LONG; // OUT
+	param[0].buffer = &codiceBiglietto;
+	param[0].buffer_length = sizeof(codiceBiglietto);
+	
+	if(mysql_stmt_bind_result(prepared_stmt, param)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not retrieve output parameter", true);
+	}
+	
+	// Retrieve output parameter
+	if(mysql_stmt_fetch(prepared_stmt)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not buffer results", true);
+	}
+
+	printf("ticket correctly added with ID %d...\n", codiceBiglietto);
+
+    out:
+	mysql_stmt_close(prepared_stmt);
+}
+
+
+static void add_waypointToARoute(MYSQL* conn)
+{
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[4];
+	char buff[10];
+
+	// Input for the registration routine
+	char tratta[6];
+	float latitudine;
+	float longitudine;
+	int numeroOrdine;
+
+	// Get the required information
+	printf("\nInserisci il codice di tratta(5 cifre): ");
+	getInput(6, tratta, false);
+	printf("\nInserisci latitudine: ");
+	getInput(10, buff, false);
+	latitudine = (float)atof(buff);
+	printf("\nInserisci longitudine: ");
+	getInput(10, buff, false);
+	longitudine = (float)atof(buff);
+	printf("\nInserisci il numero che rappresenta l'ordinamento del waypoint all'interno della tratta : ");
+	getInput(10, buff, false);
+	numeroOrdine=atoi(buff);
+
+	// Prepare stored procedure call
+	if (!setup_prepared_stmt(&prepared_stmt, "call Aggiungi_Waypoint_per_una_tratta(?, ?, ?, ?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize waypoint insertion statement\n", false);
+	}
+
+	// Prepare parameters
+	memset(param, 0, sizeof(param));
+	
+	param[0].buffer_type = MYSQL_TYPE_STRING;
+	param[0].buffer = tratta;
+	param[0].buffer_length = strlen(tratta);
+
+	param[1].buffer_type = MYSQL_TYPE_FLOAT;
+	param[1].buffer = &latitudine;
+	param[1].buffer_length = sizeof(latitudine);
+
+	param[2].buffer_type = MYSQL_TYPE_FLOAT;
+	param[2].buffer = &longitudine;
+	param[2].buffer_length = sizeof(longitudine);
+	
+	param[3].buffer_type = MYSQL_TYPE_LONG;
+	param[3].buffer = &numeroOrdine;
+	param[3].buffer_length = sizeof(numeroOrdine);
+
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for waypoint to a route insertion\n", true);
+	}
+
+	
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while adding the waypoint to a route.");
+		goto out;
+	}
+	printf("Waypoint to a route correctly inserted\n");
+
+out:
+	mysql_stmt_close(prepared_stmt);
+}
+
+
+
+
 static void add_realRoute(MYSQL* conn){
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[4];
@@ -639,21 +1096,25 @@ void run_as_administrator(MYSQL* conn)
 
 		switch (op) {
 		case 1:
-			//add_exam(conn);
+			link_vehicleWithRealRoute(conn);
 			break;
 		case 2:
-			//add_student(conn);
+			add_newWorkShift(conn);
 			break;
 		case 3:
-			//create_user(conn);
+			delete_workShift(conn);
 			break;
 		case 4:
 			//subscribe_to_degree(conn);
 			break;
 		case 5:
+			emissione_biglietto(conn);
+			break;
+		case 6:
+			emissione_abbonamento(conn);
 			break;
 		case 7:
-			//add_exam(conn);
+			driver_healed(conn);
 			break;
 		case 8:
 			//add_student(conn);
@@ -680,7 +1141,7 @@ void run_as_administrator(MYSQL* conn)
 			add_waypoint(conn);
 			break;
 		case 16:
-			//subscribe_to_degree(conn);
+			add_waypointToARoute(conn);
 			break;
 		case 17:
 			create_user(conn);
