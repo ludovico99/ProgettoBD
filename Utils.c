@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 #include "defines.h"
 
 void print_stmt_error(MYSQL_STMT* stmt, const char* message)
@@ -115,6 +116,40 @@ static void dump_result_set_header(MYSQL_RES* res_set)
 
 	print_dashes(res_set);
 }
+
+char** tokenizer (char **token_vector, char *stringa, int TipoDiDato){
+	char *s;
+	char *p;
+	int i;
+	switch (TipoDiDato){
+	
+	case 0 :
+		s= "-";
+		break;
+	
+	case 1:
+		s=":";
+		break;
+	case 2:
+	 	s=" -:";
+	 	break;
+	default:
+		goto out;
+	}
+	
+	p = (char*)strtok(stringa,s);
+	i = 0;
+	token_vector[i] = p;
+
+	while(p){
+	 	p = (char*)strtok(NULL,s);
+		token_vector[++i] = p;
+	}
+	token_vector[++i] = NULL;
+	out:
+	return token_vector;
+}
+
 
 void dump_result_set(MYSQL* conn, MYSQL_STMT* stmt, char* title)
 {

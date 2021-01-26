@@ -1,14 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <signal.h>
 #include "defines.h"
 
 static void replace_workShift(MYSQL* conn){
 	MYSQL_STMT *prepared_stmt;
 	MYSQL_BIND param[4];
-	int status;
-	bool first = true;
 	char buff[46];
 	
 	char conducente_cf[17];
@@ -331,55 +329,59 @@ out:
 static void add_newWorkShift(MYSQL *conn) {
 	MYSQL_STMT *prepared_stmt;
 	MYSQL_BIND param[3];
-	char buff[46];
-	
-	
+	char buff1[46];
+	char buff2[46];
+	char *token_vectorInizioTurno[6];
+	char *token_vectorFineTurno[6];
+		
 	char conducente_cf[17];
 	MYSQL_TIME inizioTurno[1];
 	MYSQL_TIME fineTurno[1];
 	
 	
+	printf("\nInserisci il codice fiscale del conducente: ");
+	getInput(17,conducente_cf,false);
+	printf("\nInserisci il datetime corrispondente all' inizio del turno (yyyy-mm-hh hh-mm): ");
+riprova1:
+	getInput(46, buff1, false);
+	tokenizer(token_vectorInizioTurno,buff1,2);
+	for (int i=0; i<5;i++){
+		if(token_vectorInizioTurno[i] == NULL){
+			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-hh hh-mm): ");
+	 		goto riprova1;
+		}
+	}
+	
+	printf("\nInserisci il datetime corrispondente alla fine del turno (yyyy-mm-hh hh-mm): ");
+riprova2:
+	getInput(46, buff2, false);
+	tokenizer(token_vectorFineTurno,buff2,2);
+	for (int i=0; i<5;i++){
+		if(token_vectorFineTurno[i] == NULL){
+			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-hh hh-mm): ");
+	 		goto riprova2;
+		}
+	}
+	
+	inizioTurno->year = atoi(token_vectorInizioTurno[0]);
+	inizioTurno->month = atoi(token_vectorInizioTurno[1]);
+	inizioTurno->day = atoi(token_vectorInizioTurno[2]);
+	inizioTurno->hour = atoi(token_vectorInizioTurno[3]);
+	inizioTurno->minute = atoi(token_vectorInizioTurno[4]);
+	
 	inizioTurno->second=0;
 	inizioTurno->second_part=0;
 	inizioTurno->time_type=MYSQL_TIMESTAMP_DATETIME;
+	
+	fineTurno->year = atoi(token_vectorFineTurno[0]);
+	fineTurno->month = atoi(token_vectorFineTurno[1]);
+	fineTurno->day = atoi(token_vectorFineTurno[2]);
+	fineTurno->hour = atoi(token_vectorFineTurno[3]);
+	fineTurno->minute = atoi(token_vectorFineTurno[4]);
+	
 	fineTurno->second=0;
 	fineTurno->second_part=0;
 	fineTurno->time_type=MYSQL_TIMESTAMP_DATETIME;
-	
-	
-	printf("\nInserisci il codice fiscale dell'utente: ");
-	getInput(17,conducente_cf,false);
-	printf("\nInserisci l'anno di inizio del turno: ");
-	getInput(46, buff, false);
-	inizioTurno->year = atoi(buff);
-	printf("\nInserisci il mese di inizio del turno: ");
-	getInput(46, buff, false);
-	inizioTurno->month = atoi(buff);
-	printf("\nInserisci il giorno di inizio del turno: ");
-	getInput(46, buff, false);
-	inizioTurno->day = atoi(buff);
-	printf("\nInserisci l'ora di inizio del turno: ");
-	getInput(46, buff, false);
-	inizioTurno->hour = atoi(buff);
-	printf("\nInserisci i minuti relativi all'inizio del turno: ");
-	getInput(46, buff, false);
-	inizioTurno->minute = atoi(buff);
-	
-	printf("\nInserisci l'anno di fine del turno: ");
-	getInput(46, buff, false);
-	fineTurno->year = atoi(buff);
-	printf("\nInserisci il mese di fine del turno: ");
-	getInput(46, buff, false);
-	fineTurno->month = atoi(buff);
-	printf("\nInserisci il giorno di fine del turno: ");
-	getInput(46, buff, false);
-	fineTurno->day = atoi(buff);
-	printf("\nInserisci l'ora di fine del turno: ");
-	getInput(46, buff, false);
-	fineTurno->hour = atoi(buff);
-	printf("\nInserisci i minuti relativi alla fine del turno: ");
-	getInput(46, buff, false);
-	fineTurno->minute = atoi(buff);
 	
 	if(!setup_prepared_stmt(&prepared_stmt, "call Aggiungi_NuovoTurno_Conducente(?,?,?)", conn)) {
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize work shift statement\n", false);
@@ -407,7 +409,7 @@ static void add_newWorkShift(MYSQL *conn) {
 
 	// Run procedure
 	if (mysql_stmt_execute(prepared_stmt) != 0) {
-		print_stmt_error(prepared_stmt, "An error occurred while retrieving the work shift.");
+		print_stmt_error(prepared_stmt, "An error occurred while adding the work shift.");
 		goto out;
 	}
 
@@ -419,9 +421,11 @@ static void add_newWorkShift(MYSQL *conn) {
 static void delete_workShift(MYSQL *conn) {
 	MYSQL_STMT *prepared_stmt;
 	MYSQL_BIND param[3];
-	char buff[46];
-	
-	
+	char buff1[46];
+	char buff2[46];
+	char *token_vectorInizioTurno[6];
+	char *token_vectorFineTurno[6];
+		
 	char conducente_cf[17];
 	MYSQL_TIME inizioTurno[1];
 	MYSQL_TIME fineTurno[1];
@@ -435,39 +439,42 @@ static void delete_workShift(MYSQL *conn) {
 	fineTurno->time_type=MYSQL_TIMESTAMP_DATETIME;
 	
 	
-	printf("\nInserisci il codice fiscale dell'utente: ");
+	printf("\nInserisci il codice fiscale del conducente: ");
 	getInput(17,conducente_cf,false);
-	printf("\nInserisci l'anno di inizio del turno: ");
-	getInput(46, buff, false);
-	inizioTurno->year = atoi(buff);
-	printf("\nInserisci il mese di inizio del turno: ");
-	getInput(46, buff, false);
-	inizioTurno->month = atoi(buff);
-	printf("\nInserisci il giorno di inizio del turno: ");
-	getInput(46, buff, false);
-	inizioTurno->day = atoi(buff);
-	printf("\nInserisci l'ora di inizio del turno: ");
-	getInput(46, buff, false);
-	inizioTurno->hour = atoi(buff);
-	printf("\nInserisci i minuti relativi all'inizio del turno: ");
-	getInput(46, buff, false);
-	inizioTurno->minute = atoi(buff);
+	printf("\nInserisci il datetime corrispondente all' inizio del turno (yyyy-mm-hh hh-mm): ");
+riprova1:
+	getInput(46, buff1, false);
+	tokenizer(token_vectorInizioTurno,buff1,2);
+	for (int i=0; i<5;i++){
+		if(token_vectorInizioTurno[i] == NULL){
+			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-hh hh-mm): ");
+	 		goto riprova1;
+		}
+	}
 	
-	printf("\nInserisci l'anno di fine del turno: ");
-	getInput(46, buff, false);
-	fineTurno->year = atoi(buff);
-	printf("\nInserisci il mese di fine del turno: ");
-	getInput(46, buff, false);
-	fineTurno->month = atoi(buff);
-	printf("\nInserisci il giorno di fine del turno: ");
-	getInput(46, buff, false);
-	fineTurno->day = atoi(buff);
-	printf("\nInserisci l'ora di fine del turno: ");
-	getInput(46, buff, false);
-	fineTurno->hour = atoi(buff);
-	printf("\nInserisci i minuti relativi alla fine del turno: ");
-	getInput(46, buff, false);
-	fineTurno->minute = atoi(buff);
+	printf("\nInserisci il datetime corrispondente alla fine del turno (yyyy-mm-hh hh-mm): ");
+	riprova2:
+	getInput(46, buff2, false);
+	tokenizer(token_vectorFineTurno,buff2,2);
+	for (int i=0; i<5;i++){
+		if(token_vectorFineTurno[i] == NULL){
+			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-hh hh-mm): ");
+	 		goto riprova2;
+		}
+	}
+	
+	inizioTurno->year = atoi(token_vectorInizioTurno[0]);
+	inizioTurno->month = atoi(token_vectorInizioTurno[1]);
+	inizioTurno->day = atoi(token_vectorInizioTurno[2]);
+	inizioTurno->hour = atoi(token_vectorInizioTurno[3]);
+	inizioTurno->minute = atoi(token_vectorInizioTurno[4]);
+	
+	
+	fineTurno->year = atoi(token_vectorFineTurno[0]);
+	fineTurno->month = atoi(token_vectorFineTurno[1]);
+	fineTurno->day = atoi(token_vectorFineTurno[2]);
+	fineTurno->hour = atoi(token_vectorFineTurno[3]);
+	fineTurno->minute = atoi(token_vectorFineTurno[4]);
 	
 	if(!setup_prepared_stmt(&prepared_stmt, "call EliminareOrarioConducente(?,?,?)", conn)) {
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize work shift statement\n", false);
@@ -671,35 +678,49 @@ static void add_realRoute(MYSQL* conn){
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[4];
 	char buff[46];
-	
+	char *token_vectorData[4];
+	char *token_vectorOrario[3];
 	char codiceTratta[6];
 	MYSQL_TIME dataPartenza[1];
 	MYSQL_TIME orarioPartenza[1];
 	char veicoloAssociato[5];
-	//memset(dataPartenza, 0, sizeof(dataPartenza));
+	
 	dataPartenza->time_type = MYSQL_TIMESTAMP_DATE;
-	//memset(orarioPartenza, 0, sizeof(orarioPartenza));
 	orarioPartenza->time_type = MYSQL_TIMESTAMP_TIME;
 	
 	
 	
 	printf("\nInserisci il codice di tratta (5 cifre): ");
 	getInput(6, codiceTratta, false);
-	printf("\nInserisci l'anno di partenza: ");
+	printf("\nInserisci la data di partenza (yyyy-mm-hh): ");
+riprova1:
 	getInput(46, buff, false);
-	dataPartenza->year = atoi(buff);
-	printf("\nInserisci il mese di partenza: ");
+	tokenizer(token_vectorData,buff,0);
+	for (int i=0; i<3;i++){
+		if(token_vectorData[i] == NULL){
+			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
+	 		goto riprova1;
+		}
+	}
+	
+	
+	dataPartenza->year = atoi (token_vectorData[0]);
+	dataPartenza->month = atoi (token_vectorData[1]);
+	dataPartenza->day = atoi (token_vectorData[2]);
+	
+	printf("\nInserisci l'orario di partenza (hh:mm): ");
+riprova2:
 	getInput(46, buff, false);
-	dataPartenza->month = atoi(buff);
-	printf("\nInserisci il giorno di partenza: ");
-	getInput(46, buff, false);
-	dataPartenza->day = atoi(buff);
-	printf("\nInserisci l'ora di partenza: ");
-	getInput(46, buff, false);
-	orarioPartenza->hour = atoi(buff);
-	printf("\nInserisci i minuti di partenza: ");
-	getInput(46, buff, false);
-	orarioPartenza->minute = atoi(buff);
+	tokenizer(token_vectorOrario,buff,1);
+	for (int i=0; i<2;i++){
+		if(token_vectorOrario[i] == NULL){
+			printf ("Orario inserito non corretto. Reinserirlo (hh:mm): ");
+	 		goto riprova2;
+		}
+	}
+	orarioPartenza->hour = atoi(token_vectorOrario[0]);
+	orarioPartenza->minute = atoi(token_vectorOrario[1]);
+	
 	printf("\nInserisci il veicolo assegnato a questa tratta (4 cifre): ");
 	getInput(5, veicoloAssociato, false);
 	orarioPartenza->day=0;
@@ -759,23 +780,26 @@ static void add_vehicle(MYSQL* conn){
 	// Get the required information
 	char veicolo[5];
 	MYSQL_TIME dataAcquisto[1];
-	//memset(dataAcquisto, 0, sizeof(dataAcquisto));
 	dataAcquisto->time_type = MYSQL_TIMESTAMP_DATE;
-	
+	char *token_vector[4];
 	
 	
 	printf("\nInserisci la matricola del veicolo (4 cifre): ");
 	getInput(5, veicolo, false);
-	printf("\nInserisci l'anno di acquisto del veicolo: ");
+	printf("\nInserisci la data di acquisto del veicolo(yyyy-mm-hh): ");
+riprova:
 	getInput(46, buff, false);
-	dataAcquisto->year = atoi(buff);
-	printf("\nInserisci il mese di acquisto del veicolo: ");
-	getInput(46, buff, false);
-	dataAcquisto->month = atoi(buff);
-	printf("\nInserisci il giorno di acquisto del veicolo: ");
-	getInput(46, buff, false);
-	dataAcquisto->day = atoi(buff);
-
+	tokenizer(token_vector,buff,0);
+	for (int i=0; i<3;i++){
+		if(token_vector[i] == NULL){
+			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
+	 		goto riprova;
+		}
+	}	
+	dataAcquisto->year = atoi (token_vector[0]);
+	dataAcquisto->month = atoi (token_vector[1]);
+	dataAcquisto->day = atoi (token_vector[2]);
+	
 
 	// Prepare stored procedure call
 	if (!setup_prepared_stmt(&prepared_stmt, "call Aggiungi_VeicoloPubblico(?, ?)", conn)) {
@@ -873,28 +897,33 @@ static void add_vehicleMaintenance(MYSQL* conn){
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[4];
 	char buff[46];
-	
-	// Get the required information
+	char *token_vector[4];
 	char veicolo[5];
 	MYSQL_TIME data[1];
 	float costo;
 	char tipoIntervento[46];
-	//memset(data, 0, sizeof(data));
+	
 	data->time_type = MYSQL_TIMESTAMP_DATE;
 	
 	
 	
 	printf("\nInserisci la matricola del veicolo (4 cifre): ");
 	getInput(5, veicolo, false);
-	printf("\nInserisci l'anno in cui è avvenuta la manutenzione: ");
+	printf("\nInserisci la data in cui è avvenuta la manutenzione(yyyy-mm-hh): ");
+	
+	riprova:
 	getInput(46, buff, false);
-	data->year = atoi(buff);
-	printf("\nInserisci il mese in cui è avvenuta la manutenzione: ");
-	getInput(46, buff, false);
-	data->month = atoi(buff);
-	printf("\nInserisci il giorno in cui è avvenuta la manutenzione: ");
-	getInput(46, buff, false);
-	data->day = atoi(buff);
+	tokenizer(token_vector,buff,0);
+	for (int i=0; i<3;i++){
+		if(token_vector[i] == NULL){
+			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
+	 		goto riprova;
+		}
+	}	
+	data->year = atoi (token_vector[0]);
+	data->month = atoi (token_vector[1]);
+	data->day = atoi (token_vector[2]);
+	
 	printf("\nInserisci il costo della manutenzione: ");
 	getInput(46, buff, false);
 	costo = (float)atof(buff);
@@ -1008,8 +1037,10 @@ static void add_driver(MYSQL* conn)
 {
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[9];
-
-	char buff[10];
+	char* token_vector_dataNascita[4];
+	char* token_vector_scadenzaPatente[4];
+	char buff1[46];
+	char buff2[46];
 	char cf[17];
 	char username[46];
 	char nome[46];
@@ -1019,8 +1050,7 @@ static void add_driver(MYSQL* conn)
 	char luogo_nascita[46];
 	char numero_patente[11];
 	char veicolo_Assegnato[5];
-	//memset(data_nascita, 0, sizeof(data_nascita));
-	//memset(scadenza_patente, 0, sizeof(scadenza_patente));
+	
 	data_nascita->time_type = MYSQL_TIMESTAMP_DATE;
 	scadenza_patente->time_type = MYSQL_TIMESTAMP_DATE;
 	
@@ -1033,31 +1063,43 @@ static void add_driver(MYSQL* conn)
 	getInput(46, nome, false);
 	printf("\nInserisci cognome: ");
 	getInput(46, cognome, false);
-	printf("\nInserisci anno di nascita: ");
-	getInput(10, buff, false);
-	data_nascita->year =atoi(buff);
-	printf("\nInserisci mese di nascita: ");
-	getInput(10, buff, false);
-	data_nascita->month = atoi(buff);
-	printf("\nInserisci giorno di nascita: ");
-	getInput(10, buff, false);
-	data_nascita->day = atoi(buff);
+	printf("\nInserisci la data di nascita(yyyy-mm-hh): ");
+riprova1:
+	getInput(46, buff1, false);
+	tokenizer(token_vector_dataNascita, buff1,0);
+	
+	for (int i=0; i<3;i++){
+		if(token_vector_dataNascita[i] == NULL){
+			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
+	 		goto riprova1;
+		}
+	}	
 	printf("\nInserisci luogo di nascita: ");
 	getInput(46, luogo_nascita, false);
 	printf("\nInserisci numero patente(10 caratteri): ");
 	getInput(11, numero_patente, false);
-	printf("\nInserisci anno di scadenza della patente: ");
-	getInput(10, buff, false);
-	scadenza_patente->year = atoi(buff);
-	printf("\nInserisci mese di scadenza della patente: ");
-	getInput(10, buff, false);
-	scadenza_patente->month = atoi(buff);
-	printf("\nInserisci giorno di scadenza della patente: ");
-	getInput(10, buff, false);
-	scadenza_patente->day = atoi(buff);
+	printf("\nInserisci la data di scadenza della patente(yyyy-mm-hh): ");
+riprova2:
+	getInput(46, buff2, false);
+	tokenizer(token_vector_scadenzaPatente, buff2,0);
+	for (int i=0; i<3;i++){
+		if(token_vector_scadenzaPatente[i] == NULL){
+			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
+	 		goto riprova2;
+		}
+	}
+	
 	printf("\nInserisci il veicolo assegnato(4 cifre) : ");
 	getInput(5, veicolo_Assegnato, false);
-
+	
+	data_nascita->year = atoi (token_vector_dataNascita[0]);
+	data_nascita->month = atoi (token_vector_dataNascita[1]);
+	data_nascita->day = atoi (token_vector_dataNascita[2]);
+	
+	scadenza_patente->year = atoi (token_vector_scadenzaPatente[0]);
+	scadenza_patente->month = atoi (token_vector_scadenzaPatente[1]);
+	scadenza_patente->day = atoi (token_vector_scadenzaPatente[2]);
+	
 	// Prepare stored procedure call
 	if (!setup_prepared_stmt(&prepared_stmt, "call Aggiungi_Conducente(?, ?, ?, ?, ?, ?, ?, ?, ?)", conn)) {
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize student insertion statement\n", false);
@@ -1116,12 +1158,6 @@ static void add_driver(MYSQL* conn)
 out:
 	mysql_stmt_close(prepared_stmt);
 }
-
-
-
-
-
-
 
 static void create_user(MYSQL* conn)
 {
@@ -1263,11 +1299,6 @@ void run_as_administrator(MYSQL* conn)
 		fprintf(stderr, "Unable to load administrator configuration\n");
 		exit(EXIT_FAILURE);
 	}
-	
-	
-	/*conf.db_username = "AmministratoreServizio";
-	conf.db_password = "amministratoreservizio";
-	conf.database = "progetto";*/
 
 
 	if (mysql_change_user(conn, conf.db_username, conf.db_password, conf.database)) {

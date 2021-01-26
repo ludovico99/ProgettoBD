@@ -1,0 +1,7 @@
+{
+	"host": "localhost",
+	"username": "ValidatoreElettronico",
+	"password": "validatoreelettronico",
+	"port": 3306,
+	"database": "progetto"
+}

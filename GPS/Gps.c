@@ -3,20 +3,39 @@
 #include <string.h>
 #include <mysql.h>
 #include <unistd.h>
+#include <signal.h>
 #include "defines.h"
 
 struct configuration conf;
-
+bool c;
 static MYSQL* conn;
+MYSQL_STMT* stmt;
+MYSQL_BIND param[3];
+MYSQL_STMT* stmt;
+char veicolo[4]={"1234"};
+float latitudine;
+float longitudine;
+#define timeout 5 
 
-int main(void) {
-	MYSQL_STMT* stmt;
-	MYSQL_BIND param[3];
-	char veicolo[4]={"1234"};
-	float latitudine;
-	float longitudine;
+
+
+void add_lat_long (int signo){
 	
+	latitudine = 100 + rand()%100 + 0.1*(rand()%10);
+	longitudine = 100 + rand()%100 + 0.1*(rand()%10);
+	
+	if (mysql_stmt_execute(stmt) != 0) {
+		print_stmt_error(stmt, "Could not execute gps procedure");
+		c=false;
+		mysql_stmt_close(stmt);
+	}
+		
+	printf("\nInsertion statement executed correctly: latitudine %f , longitudine %f",latitudine,longitudine);
+	alarm(timeout);
+}
 
+int main(void) {	
+	c=true;
 	if (!parse_config("Gps.json", &conf)) {
 		fprintf(stderr, "Unable to load login configuration\n");
 		exit(EXIT_FAILURE);
@@ -35,53 +54,41 @@ int main(void) {
 		exit(EXIT_FAILURE);
 	}
 	
-	
-	while (true){
-		
-		sleep(5);
-		latitudine = 100 + rand()%100 + 0.1*(rand()%10);
-		longitudine = 100 + rand()%100 + 0.1*(rand()%10);
-		
-		
-		if (!setup_prepared_stmt(&stmt, "call InformazioniGPS(?, ?, ?)", conn)) {
-			print_stmt_error(stmt, "Unable to initialize informazioni gps statement\n");
-			exit(-1);
+	if (!setup_prepared_stmt(&stmt, "call InformazioniGPS(?, ?, ?)", conn)) {
+		print_stmt_error(stmt, "Unable to initialize informazioni gps statement\n");
+		exit(-1);
 		}
 		
 		
-		memset(param, 0, sizeof(param));
+	memset(param, 0, sizeof(param));
 		
-		param[0].buffer_type = MYSQL_TYPE_STRING; 
-		param[0].buffer = veicolo;
-		param[0].buffer_length = strlen(veicolo);
+	param[0].buffer_type = MYSQL_TYPE_STRING; 
+	param[0].buffer = veicolo;
+	param[0].buffer_length = strlen(veicolo);
 
-		param[1].buffer_type = MYSQL_TYPE_FLOAT; 
-		param[1].buffer = &latitudine;
-		param[1].buffer_length = sizeof(latitudine);
+	param[1].buffer_type = MYSQL_TYPE_FLOAT; 
+	param[1].buffer = &latitudine;
+	param[1].buffer_length = sizeof(latitudine);
 
-		param[2].buffer_type = MYSQL_TYPE_FLOAT; 
-		param[2].buffer = &longitudine;
-		param[2].buffer_length = sizeof(longitudine);
+	param[2].buffer_type = MYSQL_TYPE_FLOAT; 
+	param[2].buffer = &longitudine;
+	param[2].buffer_length = sizeof(longitudine);
 
-		if (mysql_stmt_bind_param(stmt, param) != 0) { 
-			print_stmt_error(stmt, "Could not bind parameters for gps");
-			goto out;
-		}
-
-	
-		if (mysql_stmt_execute(stmt) != 0) {
-			print_stmt_error(stmt, "Could not execute gps procedure");
-			goto out;
-		}
-		
-		printf("\nInsertion statement executed correctly: latitudine %f , longitudine %f",latitudine,longitudine);
-		sleep(5000);
-	
+	if (mysql_stmt_bind_param(stmt, param) != 0) { 
+		print_stmt_error(stmt, "Could not bind parameters for gps");
+		goto out;
 	}
-	out:
-	mysql_stmt_close(stmt);
+	
+	signal(SIGALRM, add_lat_long);
+	alarm(timeout);
+	
+	while (c){
+		pause();
+		}
+		
 	printf("Bye!\n");
-
+out:
+	mysql_stmt_close(stmt);
 	mysql_close(conn);
 	return 0;
 }
