@@ -150,7 +150,7 @@ char** tokenizer (char **token_vector, char *stringa, int TipoDiDato){
 	return token_vector;
 }
 
-MYSQL_BIND* setup_mysql_bind(int nparam,void ** data, enum_field_types *type, MYSQL_BIND *param){
+MYSQL_BIND* setup_mysql_bind(int nparam,void **data, enum_field_types *type, MYSQL_BIND *param){
 	int i;
 	
 	for (i=0;i<nparam;i++){
@@ -184,12 +184,12 @@ MYSQL_BIND* setup_mysql_bind(int nparam,void ** data, enum_field_types *type, MY
 			case MYSQL_TYPE_LONG:
 				param[i].buffer_type=MYSQL_TYPE_LONG;
 				param[i].buffer= (int*)data[i];
-				param[i].buffer_length=sizeof(data[i]);
+				param[i].buffer_length=sizeof(*data[i]);
 				break;
 			case MYSQL_TYPE_FLOAT:
-				param[i].buffer_type=MYSQL_TYPE_LONG;
+				param[i].buffer_type=MYSQL_TYPE_FLOAT;
 				param[i].buffer= (float*)data[i];
-				param[i].buffer_length=sizeof(data[i]);
+				param[i].buffer_length=sizeof(*data[i]);
 				break;
 			default:
 				printf("ERROR: Unhandled type");

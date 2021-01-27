@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS `progetto`.`Fermata` (
     FOREIGN KEY (`Waypoint_Latitudine` , `Waypoint_Longitudine`)
     REFERENCES `progetto`.`Waypoint` (`Latitudine` , `Longitudine`)
     ON DELETE CASCADE
-    ON UPDATE NO ACTION)
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `fk_Fermata_Waypoint1_idx` ON `progetto`.`Fermata` (`Waypoint_Latitudine` ASC, `Waypoint_Longitudine` ASC) VISIBLE;
@@ -124,12 +124,12 @@ CREATE TABLE IF NOT EXISTS `progetto`.`Conducente` (
     FOREIGN KEY (`VeicoloPubblico_Matricola`)
     REFERENCES `progetto`.`VeicoloPubblico` (`Matricola`)
     ON DELETE SET NULL
-    ON UPDATE NO ACTION,
+    ON UPDATE CASCADE,
   CONSTRAINT `fk_Conducente_Utenti1`
     FOREIGN KEY (`Utenti_Username`)
     REFERENCES `progetto`.`Utenti` (`Username`)
     ON DELETE CASCADE
-    ON UPDATE NO ACTION)
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `fk_Conducente_VeicoloPubblico1_idx` ON `progetto`.`Conducente` (`VeicoloPubblico_Matricola` ASC) VISIBLE;
@@ -151,7 +151,7 @@ CREATE TABLE IF NOT EXISTS `progetto`.`Abbonamento` (
     FOREIGN KEY (`VeicoloPubblico_Matricola`)
     REFERENCES `progetto`.`VeicoloPubblico` (`Matricola`)
     ON DELETE SET NULL
-    ON UPDATE NO ACTION)
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `fk_Abbonamento_VeicoloPubblico1_idx` ON `progetto`.`Abbonamento` (`VeicoloPubblico_Matricola` ASC) VISIBLE;
@@ -171,7 +171,7 @@ CREATE TABLE IF NOT EXISTS `progetto`.`BigliettoElettronico` (
     FOREIGN KEY (`VeicoloPubblico_Matricola`)
     REFERENCES `progetto`.`VeicoloPubblico` (`Matricola`)
     ON DELETE SET NULL
-    ON UPDATE NO ACTION)
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `fk_BigliettoElettronico_VeicoloPubblico1_idx` ON `progetto`.`BigliettoElettronico` (`VeicoloPubblico_Matricola` ASC) INVISIBLE;
@@ -191,7 +191,7 @@ CREATE TABLE IF NOT EXISTS `progetto`.`TurniLavorativi` (
     FOREIGN KEY (`Conducente_CF`)
     REFERENCES `progetto`.`Conducente` (`CF`)
     ON DELETE CASCADE
-    ON UPDATE NO ACTION)
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `fk_TurniLavorativi_Conducente1_idx` ON `progetto`.`TurniLavorativi` (`Conducente_CF` ASC) VISIBLE;
@@ -212,12 +212,12 @@ CREATE TABLE IF NOT EXISTS `progetto`.`TrattaReale` (
     FOREIGN KEY (`VeicoloPubblico_Matricola`)
     REFERENCES `progetto`.`VeicoloPubblico` (`Matricola`)
     ON DELETE CASCADE
-    ON UPDATE NO ACTION,
+    ON UPDATE CASCADE,
   CONSTRAINT `fk_TrattaReale_TrattaStradale1`
     FOREIGN KEY (`TrattaStradale`)
     REFERENCES `progetto`.`TrattaStradale` (`CodiceIdentificativo`)
     ON DELETE CASCADE
-    ON UPDATE NO ACTION)
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `fk_TrattaReale_VeicoloPubblico1_idx` ON `progetto`.`TrattaReale` (`VeicoloPubblico_Matricola` ASC) VISIBLE;
@@ -240,7 +240,7 @@ CREATE TABLE IF NOT EXISTS `progetto`.`Manutenzione` (
     FOREIGN KEY (`VeicoloPubblico_Matricola`)
     REFERENCES `progetto`.`VeicoloPubblico` (`Matricola`)
     ON DELETE CASCADE
-    ON UPDATE NO ACTION)
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `fk_Manutenzione_VeicoloPubblico1_idx` ON `progetto`.`Manutenzione` (`VeicoloPubblico_Matricola` ASC) VISIBLE;
@@ -261,12 +261,12 @@ CREATE TABLE IF NOT EXISTS `progetto`.`AggregazioneTratta_Waypoint` (
     FOREIGN KEY (`TrattaStradale_CodiceIdentificativo`)
     REFERENCES `progetto`.`TrattaStradale` (`CodiceIdentificativo`)
     ON DELETE CASCADE
-    ON UPDATE NO ACTION,
+    ON UPDATE CASCADE,
   CONSTRAINT `fk_AggregazioneTratta_Waypoint_Waypoint1`
     FOREIGN KEY (`Waypoint_Latitudine` , `Waypoint_Longitudine`)
     REFERENCES `progetto`.`Waypoint` (`Latitudine` , `Longitudine`)
     ON DELETE CASCADE
-    ON UPDATE NO ACTION)
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `fk_AggregazioneTratta_Waypoint_TrattaStradale1_idx` ON `progetto`.`AggregazioneTratta_Waypoint` (`TrattaStradale_CodiceIdentificativo` ASC) INVISIBLE;
