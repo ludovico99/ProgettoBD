@@ -119,6 +119,7 @@ riprova2:
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
 		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for computing distance\n", true);
+		goto out;
 	}
 
 	

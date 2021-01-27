@@ -4,6 +4,391 @@
 #include <signal.h>
 #include "defines.h"
 
+static void add_vehicle(MYSQL* conn){
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[2];
+	char buff[46];
+	
+	// Get the required information
+	char veicolo[5];
+	MYSQL_TIME dataAcquisto[1];
+	
+	memset(dataAcquisto, 0, sizeof(dataAcquisto));
+	
+	
+	dataAcquisto->time_type = MYSQL_TIMESTAMP_DATE;
+	char *token_vector[4];
+	
+	
+	printf("\nInserisci la matricola del veicolo (4 cifre): ");
+	getInput(5, veicolo, false);
+	printf("\nInserisci la data di acquisto del veicolo(yyyy-mm-hh): ");
+riprova:
+	getInput(46, buff, false);
+	tokenizer(token_vector,buff,0);
+	for (int i=0; i<3;i++){
+		if(token_vector[i] == NULL){
+			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
+	 		goto riprova;
+		}
+	}	
+	dataAcquisto->year = atoi (token_vector[0]);
+	dataAcquisto->month = atoi (token_vector[1]);
+	dataAcquisto->day = atoi (token_vector[2]);
+	
+
+	// Prepare stored procedure call
+	if (!setup_prepared_stmt(&prepared_stmt, "call Aggiungi_VeicoloPubblico(?, ?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize vehicle insertion statement\n", false);
+
+	}
+
+	// Prepare parameters
+	memset(param, 0, sizeof(param));
+	
+	param[0].buffer_type = MYSQL_TYPE_STRING;
+	param[0].buffer = veicolo;
+	param[0].buffer_length = strlen(veicolo);
+
+	param[1].buffer_type = MYSQL_TYPE_DATE;
+	param[1].buffer = dataAcquisto;
+	param[1].buffer_length = sizeof(dataAcquisto);
+
+
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for vehicle insertion\n", true);
+	}
+
+	
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while adding the vehicle.");
+		goto out;
+	}
+	printf("vehicle correctly inserted\n");
+
+out:
+	mysql_stmt_close(prepared_stmt);
+}
+
+
+static void delete_vehicle(MYSQL *conn){
+
+	MYSQL_STMT *prepared_stmt;
+	MYSQL_BIND param[1];
+	char veicolo[5];
+
+
+	printf("\nInserisci la matricola del veicolo che si intende eliminare (4 cifre): ");
+	getInput(5, veicolo, false);
+	
+		
+	// Prepare stored procedure call
+	if(!setup_prepared_stmt(&prepared_stmt, "call Elimina_VeicoloPubblico(?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize delete vehicle statements\n", false);
+	}
+
+	
+	void *data[1];
+	data[0]=(void*)veicolo;
+	
+	enum_field_types type[1];
+	type[0]=MYSQL_TYPE_STRING;
+	
+	memset(param, 0, sizeof(param));
+	
+	setup_mysql_bind(1,data,type,param);
+	
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for deleting vehicle\n", true);
+	}
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+
+		print_stmt_error(prepared_stmt, "An error occurred while deleting the vehicle.");
+		goto out;
+	}
+	
+	printf("Vehicle deleted is %s...\n", veicolo);
+
+    out:
+	mysql_stmt_close(prepared_stmt);
+}
+
+static void add_driver(MYSQL* conn)
+{
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[9];
+	char* token_vector_dataNascita[4];
+	char* token_vector_scadenzaPatente[4];
+	char buff1[46];
+	char buff2[46];
+	char cf[17];
+	char username[46];
+	char nome[46];
+	char cognome[46];
+	MYSQL_TIME data_nascita[1];
+	MYSQL_TIME scadenza_patente[1];
+	char luogo_nascita[46];
+	char numero_patente[11];
+	char veicolo_Assegnato[5];
+	
+	memset(data_nascita, 0, sizeof(data_nascita));
+	memset(scadenza_patente, 0, sizeof(scadenza_patente));
+	
+	data_nascita->time_type = MYSQL_TIMESTAMP_DATE;
+	scadenza_patente->time_type = MYSQL_TIMESTAMP_DATE;
+	
+	// Get the required information
+	printf("\nInserisci codice fiscale (16 caratteri): ");
+	getInput(17, cf, false);
+	printf("\nInserisci username (valido): ");
+	getInput(46, username, false);
+	printf("\nInserisci nome: ");
+	getInput(46, nome, false);
+	printf("\nInserisci cognome: ");
+	getInput(46, cognome, false);
+	printf("\nInserisci la data di nascita(yyyy-mm-hh): ");
+riprova1:
+	getInput(46, buff1, false);
+	tokenizer(token_vector_dataNascita, buff1,0);
+	
+	for (int i=0; i<3;i++){
+		if(token_vector_dataNascita[i] == NULL){
+			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
+	 		goto riprova1;
+		}
+	}	
+	printf("\nInserisci luogo di nascita: ");
+	getInput(46, luogo_nascita, false);
+	printf("\nInserisci numero patente(10 caratteri): ");
+	getInput(11, numero_patente, false);
+	printf("\nInserisci la data di scadenza della patente(yyyy-mm-hh): ");
+riprova2:
+	getInput(46, buff2, false);
+	tokenizer(token_vector_scadenzaPatente, buff2,0);
+	for (int i=0; i<3;i++){
+		if(token_vector_scadenzaPatente[i] == NULL){
+			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
+	 		goto riprova2;
+		}
+	}
+	
+	printf("\nInserisci il veicolo assegnato(4 cifre) : ");
+	getInput(5, veicolo_Assegnato, false);
+	
+	data_nascita->year = atoi (token_vector_dataNascita[0]);
+	data_nascita->month = atoi (token_vector_dataNascita[1]);
+	data_nascita->day = atoi (token_vector_dataNascita[2]);
+	
+	scadenza_patente->year = atoi (token_vector_scadenzaPatente[0]);
+	scadenza_patente->month = atoi (token_vector_scadenzaPatente[1]);
+	scadenza_patente->day = atoi (token_vector_scadenzaPatente[2]);
+	
+	// Prepare stored procedure call
+	if (!setup_prepared_stmt(&prepared_stmt, "call Aggiungi_Conducente(?, ?, ?, ?, ?, ?, ?, ?, ?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize student insertion statement\n", false);
+	}
+
+	// Prepare parameters
+	memset(param, 0, sizeof(param));
+
+	void *data[9];
+	data[0]=(void*)cf;
+	data[1]=(void*)username;
+	data[2]=(void*)nome;
+	data[3]=(void*)cognome;
+	data[4]=(void*)data_nascita;
+	data[5]=(void*)luogo_nascita;
+	data[6]=(void*)numero_patente;
+	data[7]=(void*)scadenza_patente;
+	data[8]=(void*)veicolo_Assegnato;
+	
+	enum_field_types type[1];
+	type[0]=MYSQL_TYPE_STRING;
+	type[1]=MYSQL_TYPE_VAR_STRING;
+	type[2]=MYSQL_TYPE_VAR_STRING;
+	type[3]=MYSQL_TYPE_VAR_STRING;
+	type[4]=MYSQL_TYPE_DATE;
+	type[5]=MYSQL_TYPE_VAR_STRING;
+	type[6]=MYSQL_TYPE_STRING;
+	type[7]=MYSQL_TYPE_DATE;
+	type[8]=MYSQL_TYPE_STRING;
+	
+	
+	memset(param, 0, sizeof(param));
+	
+	setup_mysql_bind(9,data,type,param);
+	
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for driver insertion\n", true);
+	}
+
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while adding the driver.");
+		goto out;
+	}
+	printf("driver correctly inserted\n");
+
+out:
+	mysql_stmt_close(prepared_stmt);
+}
+
+static void delete_driver(MYSQL *conn){
+
+	MYSQL_STMT *prepared_stmt;
+	MYSQL_BIND param[1];
+	char cf[17];
+
+
+	printf("\nInserisci il codice fiscale del conducente che si intende eliminare: ");
+	getInput(17, veicolo, false);
+	
+		
+	// Prepare stored procedure call
+	if(!setup_prepared_stmt(&prepared_stmt, "call Elimina_Conducente(?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize delete vehicle statements\n", false);
+	}
+
+	
+	void *data[1];
+	data[0]=(void*)cf;
+	
+	enum_field_types type[1];
+	type[0]=MYSQL_TYPE_STRING;
+	
+	memset(param, 0, sizeof(param));
+	
+	setup_mysql_bind(1,data,type,param);
+	
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for deleting the driver\n", true);
+	}
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while deleting the driver.");
+		goto out;
+	}
+	
+	printf("driver deleted is %s...\n", cf);
+
+    out:
+	mysql_stmt_close(prepared_stmt);
+}
+
+static void add_busStop(MYSQL* conn)
+{
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[3];
+	char buff[10];
+
+	// Input for the registration routine
+	char fermata[6];
+	float latitudine;
+	float longitudine;
+	
+
+	// Get the required information
+	printf("\nInserisci il codice di fermata(5 cifre): ");
+	getInput(6, fermata, false);
+	printf("\nInserisci latitudine: ");
+	getInput(10, buff, false);
+	latitudine = (float)atof(buff);
+	printf("\nInserisci longitudine: ");
+	getInput(10, buff, false);
+	longitudine = (float)atof(buff);
+
+	// Prepare stored procedure call
+	if (!setup_prepared_stmt(&prepared_stmt, "call Aggiungi_Fermata(?, ?, ?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize waypoint insertion statement\n", false);
+	}
+
+	void *data[3];
+	data[0]=(void*)fermata;
+	data[1]=(void*)latitudine;
+	data[2]=(void*)longitudine;
+	
+	enum_field_types type[3];
+	type[0]=MYSQL_TYPE_STRING;
+	type[1]=MYSQL_TYPE_FLOAT;
+	type[2]=MYSQL_TYPE_FLOAT;
+	
+	memset(param, 0, sizeof(param));
+	setup_mysql_bind(3,data,type,param);
+	
+	
+	/*param[0].buffer_type = MYSQL_TYPE_STRING;
+	param[0].buffer = fermata;
+	param[0].buffer_length = strlen(fermata);
+
+	param[1].buffer_type = MYSQL_TYPE_FLOAT;
+	param[1].buffer = &latitudine;
+	param[1].buffer_length = sizeof(latitudine);
+
+	param[2].buffer_type = MYSQL_TYPE_FLOAT;
+	param[2].buffer = &longitudine;
+	param[2].buffer_length = sizeof(longitudine);*/
+
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for bus stop insertion\n", true);
+	}
+
+	
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while adding the bus stop.");
+		goto out;
+	}
+	printf("Bus stop correctly inserted\n");
+
+out:
+	mysql_stmt_close(prepared_stmt);
+}
+
+static void delete_busStop(MYSQL *conn){
+
+	MYSQL_STMT *prepared_stmt;
+	MYSQL_BIND param[1];
+	char fermata[6];
+
+
+	printf("\nInserisci il codice di fermata che si vuole eliminare (5 cifre): ");
+	getInput(6, fermata, false);
+	
+		
+	// Prepare stored procedure call
+	if(!setup_prepared_stmt(&prepared_stmt, "call Elimina_Fermata(?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize delete bus stop statements\n", false);
+	}
+
+	
+	void *data[1];
+	data[0]=(void*)fermata;
+	
+	enum_field_types type[1];
+	type[0]=MYSQL_TYPE_STRING;
+	
+	memset(param, 0, sizeof(param));
+	
+	setup_mysql_bind(1,data,type,param);
+	
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for deleting bus stop\n", true);
+	}
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while deleting the bus stop.");
+		goto out;
+	}
+	
+	printf("Bus stop deleted is %s...\n", fermata);
+
+    out:
+	mysql_stmt_close(prepared_stmt);
+}
+
+
 static void replace_workShift(MYSQL* conn){
 	MYSQL_STMT *prepared_stmt;
 	MYSQL_BIND param[4];
@@ -515,7 +900,7 @@ riprova1:
 	fineTurno->hour = atoi(token_vectorFineTurno[3]);
 	fineTurno->minute = atoi(token_vectorFineTurno[4]);
 	
-	if(!setup_prepared_stmt(&prepared_stmt, "call EliminareOrarioConducente(?,?,?)", conn)) {
+	if(!setup_prepared_stmt(&prepared_stmt, "call EliminaOrarioConducente(?,?,?)", conn)) {
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize work shift statement\n", false);
 	}
 	
@@ -811,75 +1196,6 @@ out:
 }
 
 
-
-static void add_vehicle(MYSQL* conn){
-	MYSQL_STMT* prepared_stmt;
-	MYSQL_BIND param[2];
-	char buff[46];
-	
-	// Get the required information
-	char veicolo[5];
-	MYSQL_TIME dataAcquisto[1];
-	
-	memset(dataAcquisto, 0, sizeof(dataAcquisto));
-	
-	
-	dataAcquisto->time_type = MYSQL_TIMESTAMP_DATE;
-	char *token_vector[4];
-	
-	
-	printf("\nInserisci la matricola del veicolo (4 cifre): ");
-	getInput(5, veicolo, false);
-	printf("\nInserisci la data di acquisto del veicolo(yyyy-mm-hh): ");
-riprova:
-	getInput(46, buff, false);
-	tokenizer(token_vector,buff,0);
-	for (int i=0; i<3;i++){
-		if(token_vector[i] == NULL){
-			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
-	 		goto riprova;
-		}
-	}	
-	dataAcquisto->year = atoi (token_vector[0]);
-	dataAcquisto->month = atoi (token_vector[1]);
-	dataAcquisto->day = atoi (token_vector[2]);
-	
-
-	// Prepare stored procedure call
-	if (!setup_prepared_stmt(&prepared_stmt, "call Aggiungi_VeicoloPubblico(?, ?)", conn)) {
-		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize vehicle insertion statement\n", false);
-	}
-
-	// Prepare parameters
-	memset(param, 0, sizeof(param));
-	
-	param[0].buffer_type = MYSQL_TYPE_STRING;
-	param[0].buffer = veicolo;
-	param[0].buffer_length = strlen(veicolo);
-
-	param[1].buffer_type = MYSQL_TYPE_DATE;
-	param[1].buffer = dataAcquisto;
-	param[1].buffer_length = sizeof(dataAcquisto);
-
-
-
-	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
-		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for vehicle insertion\n", true);
-	}
-
-	
-	if (mysql_stmt_execute(prepared_stmt) != 0) {
-		print_stmt_error(prepared_stmt, "An error occurred while adding the vehicle.");
-		goto out;
-	}
-	printf("vehicle correctly inserted\n");
-
-out:
-	mysql_stmt_close(prepared_stmt);
-}
-
-
-
 static void add_route(MYSQL* conn){
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[3];
@@ -1016,197 +1332,6 @@ out:
 	mysql_stmt_close(prepared_stmt);
 }
 
-
-
-static void add_busStop(MYSQL* conn)
-{
-	MYSQL_STMT* prepared_stmt;
-	MYSQL_BIND param[3];
-	char buff[10];
-
-	// Input for the registration routine
-	char fermata[6];
-	float latitudine;
-	float longitudine;
-	
-
-	// Get the required information
-	printf("\nInserisci il codice di fermata(5 cifre): ");
-	getInput(6, fermata, false);
-	printf("\nInserisci latitudine: ");
-	getInput(10, buff, false);
-	latitudine = (float)atof(buff);
-	printf("\nInserisci longitudine: ");
-	getInput(10, buff, false);
-	longitudine = (float)atof(buff);
-
-	// Prepare stored procedure call
-	if (!setup_prepared_stmt(&prepared_stmt, "call Aggiungi_Fermata(?, ?, ?)", conn)) {
-		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize waypoint insertion statement\n", false);
-	}
-
-	// Prepare parameters
-	memset(param, 0, sizeof(param));
-	
-	param[0].buffer_type = MYSQL_TYPE_STRING;
-	param[0].buffer = fermata;
-	param[0].buffer_length = strlen(fermata);
-
-	param[1].buffer_type = MYSQL_TYPE_FLOAT;
-	param[1].buffer = &latitudine;
-	param[1].buffer_length = sizeof(latitudine);
-
-	param[2].buffer_type = MYSQL_TYPE_FLOAT;
-	param[2].buffer = &longitudine;
-	param[2].buffer_length = sizeof(longitudine);
-
-
-	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
-		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for bus stop insertion\n", true);
-	}
-
-	
-	if (mysql_stmt_execute(prepared_stmt) != 0) {
-		print_stmt_error(prepared_stmt, "An error occurred while adding the bus stop.");
-		goto out;
-	}
-	printf("Bus stop correctly inserted\n");
-
-out:
-	mysql_stmt_close(prepared_stmt);
-}
-
-
-
-
-static void add_driver(MYSQL* conn)
-{
-	MYSQL_STMT* prepared_stmt;
-	MYSQL_BIND param[9];
-	char* token_vector_dataNascita[4];
-	char* token_vector_scadenzaPatente[4];
-	char buff1[46];
-	char buff2[46];
-	char cf[17];
-	char username[46];
-	char nome[46];
-	char cognome[46];
-	MYSQL_TIME data_nascita[1];
-	MYSQL_TIME scadenza_patente[1];
-	char luogo_nascita[46];
-	char numero_patente[11];
-	char veicolo_Assegnato[5];
-	
-	memset(data_nascita, 0, sizeof(data_nascita));
-	memset(scadenza_patente, 0, sizeof(scadenza_patente));
-	
-	data_nascita->time_type = MYSQL_TIMESTAMP_DATE;
-	scadenza_patente->time_type = MYSQL_TIMESTAMP_DATE;
-	
-	// Get the required information
-	printf("\nInserisci codice fiscale (16 caratteri): ");
-	getInput(17, cf, false);
-	printf("\nInserisci username (valido): ");
-	getInput(46, username, false);
-	printf("\nInserisci nome: ");
-	getInput(46, nome, false);
-	printf("\nInserisci cognome: ");
-	getInput(46, cognome, false);
-	printf("\nInserisci la data di nascita(yyyy-mm-hh): ");
-riprova1:
-	getInput(46, buff1, false);
-	tokenizer(token_vector_dataNascita, buff1,0);
-	
-	for (int i=0; i<3;i++){
-		if(token_vector_dataNascita[i] == NULL){
-			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
-	 		goto riprova1;
-		}
-	}	
-	printf("\nInserisci luogo di nascita: ");
-	getInput(46, luogo_nascita, false);
-	printf("\nInserisci numero patente(10 caratteri): ");
-	getInput(11, numero_patente, false);
-	printf("\nInserisci la data di scadenza della patente(yyyy-mm-hh): ");
-riprova2:
-	getInput(46, buff2, false);
-	tokenizer(token_vector_scadenzaPatente, buff2,0);
-	for (int i=0; i<3;i++){
-		if(token_vector_scadenzaPatente[i] == NULL){
-			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
-	 		goto riprova2;
-		}
-	}
-	
-	printf("\nInserisci il veicolo assegnato(4 cifre) : ");
-	getInput(5, veicolo_Assegnato, false);
-	
-	data_nascita->year = atoi (token_vector_dataNascita[0]);
-	data_nascita->month = atoi (token_vector_dataNascita[1]);
-	data_nascita->day = atoi (token_vector_dataNascita[2]);
-	
-	scadenza_patente->year = atoi (token_vector_scadenzaPatente[0]);
-	scadenza_patente->month = atoi (token_vector_scadenzaPatente[1]);
-	scadenza_patente->day = atoi (token_vector_scadenzaPatente[2]);
-	
-	// Prepare stored procedure call
-	if (!setup_prepared_stmt(&prepared_stmt, "call Aggiungi_Conducente(?, ?, ?, ?, ?, ?, ?, ?, ?)", conn)) {
-		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize student insertion statement\n", false);
-	}
-
-	// Prepare parameters
-	memset(param, 0, sizeof(param));
-
-	param[0].buffer_type = MYSQL_TYPE_STRING;
-	param[0].buffer = cf;
-	param[0].buffer_length = strlen(cf);
-
-	param[1].buffer_type = MYSQL_TYPE_VAR_STRING;
-	param[1].buffer = username;
-	param[1].buffer_length = strlen(username);
-
-	param[2].buffer_type = MYSQL_TYPE_VAR_STRING;
-	param[2].buffer = nome;
-	param[2].buffer_length = strlen(nome);
-
-	param[3].buffer_type = MYSQL_TYPE_VAR_STRING;
-	param[3].buffer = cognome;
-	param[3].buffer_length = strlen(cognome);
-
-	param[4].buffer_type = MYSQL_TYPE_DATE;
-	param[4].buffer = data_nascita;
-	param[4].buffer_length = sizeof(data_nascita);
-
-	param[5].buffer_type = MYSQL_TYPE_VAR_STRING;
-	param[5].buffer = luogo_nascita;
-	param[5].buffer_length = strlen(luogo_nascita);
-
-	param[6].buffer_type = MYSQL_TYPE_STRING;
-	param[6].buffer = numero_patente;
-	param[6].buffer_length = strlen(numero_patente);
-
-	param[7].buffer_type = MYSQL_TYPE_DATE;
-	param[7].buffer = scadenza_patente;
-	param[7].buffer_length = sizeof(scadenza_patente);
-
-	param[8].buffer_type = MYSQL_TYPE_STRING;
-	param[8].buffer = veicolo_Assegnato;
-	param[8].buffer_length = strlen(veicolo_Assegnato);
-
-	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
-		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for driver insertion\n", true);
-	}
-
-
-	if (mysql_stmt_execute(prepared_stmt) != 0) {
-		print_stmt_error(prepared_stmt, "An error occurred while adding the driver.");
-		goto out;
-	}
-	printf("driver correctly inserted\n");
-
-out:
-	mysql_stmt_close(prepared_stmt);
-}
 
 static void create_user(MYSQL* conn)
 {
@@ -1358,81 +1483,125 @@ void run_as_administrator(MYSQL* conn)
 	while (true) {
 		printf("\033[2J\033[H");
 		printf("*** What should I do for you? ***\n\n");
-		printf("1) Associare un veicolo ad una tratta reale\n");
-		printf("2) Aggiungere nuovo turno ad un conducente \n");
-		printf("3) Elminare turno ad un conducente\n");
-		printf("4) Sostituire il turno di un conducente\n");
-		printf("5) Emettere biglietto\n");
-		printf("6) Emettere abbonamento\n");
-		printf("7) Conducente guarito\n");
-		printf("8) Cerca conducenti validi per la sostituzione\n");
-		printf("9) Aggiungere nuovo conducente\n");
-		printf("10) Aggiungere nuova fermata\n");
-		printf("11) Aggiungere Manutenzione\n");
-		printf("12) Aggiungere tratta reale\n");
-		printf("13) Aggiungere tratta stradale\n");
-		printf("14) Aggiungere veicolo pubblico\n");
-		printf("15) Aggiungere waypoint\n");
-		printf("16) Aggiungere Waypoint in una tratta\n");
+		printf("1) Aggiungere veicolo pubblico\n");
+		printf("2) Eliminare veicolo pubblico\n");
+		printf("3) Aggiungere nuovo conducente\n");
+		printf("4) Eliminare conducente\n");
+		printf("5) Aggiungere nuova fermata\n");
+		printf("6) Eliminare fermata\n");
+		printf("7) Aggiungere Manutenzione\n");
+		printf("8) Eliminare Manutenzione\n");
+		printf("9) Aggiungere tratta stradale\n");
+		printf("10) Eliminare tratta stradale\n");
+		printf("11) Aggiungere tratta reale\n");
+		printf("12) Eliminare tratta reale\n");
+		printf("13) Aggiungere waypoint\n");
+		printf("14) Eliminare waypoint\n");
+		printf("15) Aggiungere Waypoint in una tratta\n");
+		printf("16) Eliminare Waypoint da una tratta\n");
 		printf("17) Crea Utente\n");
-		printf("18) Quit\n");
+		printf("18) Eliminare Utente\n");
+		printf("19) Aggiungere nuovo turno ad un conducente \n");
+		printf("20) Elminare turno ad un conducente\n");
+		printf("21) Associare un veicolo ad una tratta reale\n");
+		printf("22) Sostituire il turno di un conducente\n");
+		printf("23) Emettere biglietto\n");
+		printf("24) Eliminare biglietto\n");
+		printf("25) Emettere abbonamento\n");
+		printf("26) Eliminare abbonamento\n");
+		printf("27) Conducente guarito\n");
+		printf("28) Cerca conducenti validi per la sostituzione\n");
+		printf("29) Quit\n");
 
 		op = atoi(multiChoice("Select an option", options, 18));
 		printf("%d",op);
 
 		switch (op) {
 		case 1:
-			link_vehicleWithRealRoute(conn);
-			break;
-		case 2:
-			add_newWorkShift(conn);
-			break;
-		case 3:
-			delete_workShift(conn);
-			break;
-		case 4:
-			replace_workShift(conn);
-			break;
-		case 5:
-			emissione_biglietto(conn);
-			break;
-		case 6:
-			emissione_abbonamento(conn);
-			break;
-		case 7:
-			driver_healed(conn);
-			break;
-		case 8:
-			find_driver_shiftReplacement(conn);
-			break;
-		case 9:
-			add_driver(conn);
-			break;
-		case 10:
-			add_busStop(conn);
-			break;
-		case 11:
-			add_vehicleMaintenance(conn);
-			break;
-		case 12:
-			add_realRoute(conn);
-			break;
-		case 13:
-			add_route(conn);
-			break;
-		case 14:
 			add_vehicle(conn);
 			break;
-		case 15:
+		case 2:
+			delete_vehicle(conn);
+			break;
+		case 3:
+			add_driver(conn);
+			break;
+		/*case 4:
+			delete_driver(conn);
+			break;*/
+		case 5:
+			add_busStop(conn);
+			break;
+		/*case 6:
+			delete_busStop(conn);
+			break;	*/
+		case 7:
+			add_vehicleMaintenance(conn);
+			break;
+		/*case 8:
+			delete_vehicleMaintenance(conn);
+			break;*/
+		case 9:
+			add_route(conn);
+			break;
+		/*case 10:
+			delete_route(conn);
+			break;*/
+		case 11:
+			add_realRoute(conn);
+			break;
+		/*case 12:
+			delete_realRoute(conn);
+			break;*/
+		case 13:
 			add_waypoint(conn);
 			break;
-		case 16:
+		/*case 14:
+			delete_waypoint(conn);
+			break;*/
+		case 15:
 			add_waypointToARoute(conn);
 			break;
+		/*case 16:
+			Delete_waypointFromARoute(conn);
+			break;*/
 		case 17:
 			create_user(conn);
 			break;
-		case 18:
+		/*case 18:
+			delete_user(conn);
+			break;*/
+		case 19:
+			add_newWorkShift(conn);
+			break;
+		case 20:
+			delete_workShift(conn);
+			break;
+		case 21:
+			link_vehicleWithRealRoute(conn);
+			break;
+		case 22:
+			replace_workShift(conn);
+			break;
+		case 23:
+			find_driver_shiftReplacement(conn);
+			break;
+		case 24:
+			emissione_biglietto(conn);
+			break;
+		/*case 25:
+			eliminare_biglietto(conn);
+			break;*/
+		case 26:
+			emissione_abbonamento(conn);
+			break;
+		/*case 27:
+			eliminare_abbonamento(conn);
+			break;*/
+		case 28:
+			driver_healed(conn);
+			break;
+		case 29:
 			return;
 		default:
 			fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);

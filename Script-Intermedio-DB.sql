@@ -54,11 +54,13 @@ CREATE TABLE IF NOT EXISTS `progetto`.`Fermata` (
   CONSTRAINT `fk_Fermata_Waypoint1`
     FOREIGN KEY (`Waypoint_Latitudine` , `Waypoint_Longitudine`)
     REFERENCES `progetto`.`Waypoint` (`Latitudine` , `Longitudine`)
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 CREATE INDEX `fk_Fermata_Waypoint1_idx` ON `progetto`.`Fermata` (`Waypoint_Latitudine` ASC, `Waypoint_Longitudine` ASC) VISIBLE;
+
+CREATE UNIQUE INDEX `Waypoint_Lat_long_UNIQUE` ON `progetto`.`Fermata` (`Waypoint_Latitudine` ASC, `Waypoint_Longitudine` ASC) VISIBLE;
 
 
 -- -----------------------------------------------------
@@ -74,12 +76,12 @@ CREATE TABLE IF NOT EXISTS `progetto`.`TrattaStradale` (
   CONSTRAINT `fk_TrattaStradale_Fermata1`
     FOREIGN KEY (`PrimaFermata`)
     REFERENCES `progetto`.`Fermata` (`CodiceFermata`)
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_TrattaStradale_Fermata2`
     FOREIGN KEY (`UltimaFermata`)
     REFERENCES `progetto`.`Fermata` (`CodiceFermata`)
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
@@ -115,18 +117,18 @@ CREATE TABLE IF NOT EXISTS `progetto`.`Conducente` (
   `LuogoDiNascita` VARCHAR(45) NOT NULL,
   `NumPatente` CHAR(10) NOT NULL,
   `DataScadenzaPatente` DATE NOT NULL,
-  `InMalattia` BIT(1) NOT NULL DEFAULT b'0',
+  `InMalattia` BIT NOT NULL,
   `VeicoloPubblico_Matricola` CHAR(4) NULL,
   PRIMARY KEY (`CF`),
   CONSTRAINT `fk_Conducente_VeicoloPubblico1`
     FOREIGN KEY (`VeicoloPubblico_Matricola`)
     REFERENCES `progetto`.`VeicoloPubblico` (`Matricola`)
-    ON DELETE NO ACTION
+    ON DELETE SET NULL
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_Conducente_Utenti1`
     FOREIGN KEY (`Utenti_Username`)
     REFERENCES `progetto`.`Utenti` (`Username`)
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
@@ -148,7 +150,7 @@ CREATE TABLE IF NOT EXISTS `progetto`.`Abbonamento` (
   CONSTRAINT `fk_Abbonamento_VeicoloPubblico1`
     FOREIGN KEY (`VeicoloPubblico_Matricola`)
     REFERENCES `progetto`.`VeicoloPubblico` (`Matricola`)
-    ON DELETE NO ACTION
+    ON DELETE SET NULL
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
@@ -168,7 +170,7 @@ CREATE TABLE IF NOT EXISTS `progetto`.`BigliettoElettronico` (
   CONSTRAINT `fk_BigliettoElettronico_VeicoloPubblico1`
     FOREIGN KEY (`VeicoloPubblico_Matricola`)
     REFERENCES `progetto`.`VeicoloPubblico` (`Matricola`)
-    ON DELETE NO ACTION
+    ON DELETE SET NULL
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
@@ -188,7 +190,7 @@ CREATE TABLE IF NOT EXISTS `progetto`.`TurniLavorativi` (
   CONSTRAINT `fk_TurniLavorativi_Conducente1`
     FOREIGN KEY (`Conducente_CF`)
     REFERENCES `progetto`.`Conducente` (`CF`)
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
@@ -209,12 +211,12 @@ CREATE TABLE IF NOT EXISTS `progetto`.`TrattaReale` (
   CONSTRAINT `fk_TrattaReale_VeicoloPubblico1`
     FOREIGN KEY (`VeicoloPubblico_Matricola`)
     REFERENCES `progetto`.`VeicoloPubblico` (`Matricola`)
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_TrattaReale_TrattaStradale1`
     FOREIGN KEY (`TrattaStradale`)
     REFERENCES `progetto`.`TrattaStradale` (`CodiceIdentificativo`)
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
@@ -237,7 +239,7 @@ CREATE TABLE IF NOT EXISTS `progetto`.`Manutenzione` (
   CONSTRAINT `fk_Manutenzione_VeicoloPubblico1`
     FOREIGN KEY (`VeicoloPubblico_Matricola`)
     REFERENCES `progetto`.`VeicoloPubblico` (`Matricola`)
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
@@ -263,7 +265,7 @@ CREATE TABLE IF NOT EXISTS `progetto`.`AggregazioneTratta_Waypoint` (
   CONSTRAINT `fk_AggregazioneTratta_Waypoint_Waypoint1`
     FOREIGN KEY (`Waypoint_Latitudine` , `Waypoint_Longitudine`)
     REFERENCES `progetto`.`Waypoint` (`Latitudine` , `Longitudine`)
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
@@ -301,7 +303,7 @@ from `TrattaReale`  as `tr`
 where `tr`.`TrattaStradale` = var_codiceTratta and `tr`.`DataPartenza`=var_Data and `tr`.`OrarioPartenza` = var_orarioPartenza into counter;
 
 if counter=0 then
-	insert into `TrattaReale`(`TrattaStradale`, `DataPartenza `, `OrarioPartenza`, `VeicoloPubblico_Matricola`) values (var_codiceTratta, var_Data, var_orarioPartenza, var_veicoloPubblico);
+	insert into `TrattaReale`(`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) values (var_codiceTratta, var_Data, var_orarioPartenza, var_veicoloPubblico);
 else  
 	
 	update `TrattaReale` set `VeicoloPubblico_Matricola`= var_veicoloPubblico 
@@ -324,20 +326,15 @@ DELIMITER $$
 USE `progetto`$$
 CREATE PROCEDURE `Aggiungi_NuovoTurno_Conducente` (in var_Conducente char(16) , in var_inizioTurno datetime, in var_fineTurno datetime)
 BEGIN
-	declare risultato char(16) default null;
-    declare exit handler for sqlexception
+	declare exit handler for sqlexception
     begin
         rollback;  -- rollback any changes made in the transaction
         resignal;  -- raise again the sql exception to the caller
     end;
-    
+
     set transaction isolation level read committed;
 	start transaction;
     
-	select `CF` from `Conducente` where `CF`=var_Conducente into risultato;
-    if risultato is null then
-		signal sqlstate '45004' set message_text = 'Il conducente inserito non è valido';
-	end if;
 	insert into `TurniLavorativi`  (`Conducente_CF`, `InizioTurno`, `FineTurno`) values (var_Conducente, var_inizioTurno , var_fineTurno);
     commit;
 END$$
@@ -345,15 +342,15 @@ END$$
 DELIMITER ;
 
 -- -----------------------------------------------------
--- procedure EliminareOrarioConducente
+-- procedure Elimina_OrarioConducente
 -- -----------------------------------------------------
 
 USE `progetto`;
-DROP procedure IF EXISTS `progetto`.`EliminareOrarioConducente`;
+DROP procedure IF EXISTS `progetto`.`Elimina_OrarioConducente`;
 
 DELIMITER $$
 USE `progetto`$$
-CREATE PROCEDURE `EliminareOrarioConducente` (in var_Conducente char(16) , in var_inizioTurno datetime, in var_fineTurno datetime)
+CREATE PROCEDURE `Elimina_OrarioConducente` (in var_Conducente char(16) , in var_inizioTurno datetime, in var_fineTurno datetime)
 BEGIN
 	Delete from `TurniLavorativi`  where `Conducente_CF`= var_Conducente and `InizioTurno`= var_inizioTurno and `FineTurno` = var_fineTurno;
 END$$
@@ -572,7 +569,7 @@ DROP procedure IF EXISTS `progetto`.`Abbonamento_Utilizzato`;
 
 DELIMITER $$
 USE `progetto`$$
-CREATE PROCEDURE `Abbonamento_Utilizzato` (in var_CodiceBiglietto int, in var_UltimoUtilizzo date, in var_VeicoloValidante char(4))
+CREATE PROCEDURE `Abbonamento_Utilizzato` (in var_CodiceAbbonamento int, in var_VeicoloValidante char(4))
 BEGIN
 	declare done int default false;
 	declare var_AbbonamentoEsistente int;
@@ -591,7 +588,7 @@ set transaction isolation level read committed;
     open cur;
     read_loop: loop
 		fetch cur into var_AbbonamentoEsistente;
-		if var_AbbonamentoEsistente =var_CodiceBiglietto then
+		if var_AbbonamentoEsistente =var_CodiceAbbonamento then
 			leave read_loop;
         end if;
         if done then
@@ -600,8 +597,8 @@ set transaction isolation level read committed;
 	end loop;
     close cur;
     
-	update `Abbonamento` set `UltimoUtilizzo`=var_UltimoUtilizzo, `VeicoloPubblico_Matricola` =var_VeicoloValidante 
-    where `Codice` = var_CodiceBiglietto;
+	update `Abbonamento` set `UltimoUtilizzo`=curdate(), `VeicoloPubblico_Matricola` =var_VeicoloValidante 
+    where `Codice` = var_CodiceAbbonamento;
     commit;
 END$$
 
@@ -718,8 +715,8 @@ BEGIN
     declare var_DistanzaParziale float default 0;
     declare var_PrimaIterazione int default true;
     declare done int default false;
-    declare cur1 cursor for select `Waypoint_Latitudine`,`Waypoint_Longitudine` from `AggregazioneTratta_Waypoint` where `TrattaStradale_CodiceIdentificativo` = var_TrattaCorrente and `Ordine` >=var_NumeroOrdine_PrimoWaypoint and  `Ordine`<= var_NumeroOrdine_UltimoWaypoint order by `Ordine` asc;
-	declare cur2 cursor for select `Waypoint_Latitudine`,`Waypoint_Longitudine` from `AggregazioneTratta_Waypoint` where `TrattaStradale_CodiceIdentificativo` = var_TrattaCorrente and `Ordine` >=var_NumeroOrdine_PrimoWaypoint and  `Ordine`<= var_NumeroOrdine_UltimoWaypoint order by `Ordine` asc;
+    declare cur1 cursor for select `Waypoint_Latitudine`,`Waypoint_Longitudine` from `AggregazioneTratta_Waypoint` where `TrattaStradale_CodiceIdentificativo` = var_TrattaCorrente and `Ordine` >=1 and  `Ordine`<= var_NumeroOrdine_UltimoWaypoint order by `Ordine` asc;
+	declare cur2 cursor for select `Waypoint_Latitudine`,`Waypoint_Longitudine` from `AggregazioneTratta_Waypoint` where `TrattaStradale_CodiceIdentificativo` = var_TrattaCorrente and `Ordine` >=1 and  `Ordine`<= var_NumeroOrdine_UltimoWaypoint order by `Ordine` asc;
     declare continue handler for not found set done = true;
     
     declare exit handler for sqlexception
@@ -731,11 +728,12 @@ BEGIN
 	set transaction isolation level repeatable read;
     start transaction;
     set var_Distanza = 0;
+    
 	select `VeicoloPubblico_Matricola`
     from `TrattaReale`
     where `TrattaStradale` = var_TrattaCorrente and `DataPartenza`=var_DataPartenza and `OrarioPartenza`= var_OrarioPartenza into var_VeicoloAttuale;
 	
-    if var_VeicoloAttuale is null then 
+	if var_VeicoloAttuale is null then 
 		signal sqlstate '45006' set message_text="Informazioni inserite non valide";
 	end if;
     
@@ -1028,6 +1026,182 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+-- -----------------------------------------------------
+-- procedure Elimina_Conducente
+-- -----------------------------------------------------
+
+USE `progetto`;
+DROP procedure IF EXISTS `progetto`.`Elimina_Conducente`;
+
+DELIMITER $$
+USE `progetto`$$
+CREATE PROCEDURE `Elimina_Conducente` (in var_conducente char(16))
+BEGIN
+	Delete from `Conducente`  where `Conducente_CF`= var_Conducente;
+END$$
+
+DELIMITER ;
+
+-- -----------------------------------------------------
+-- procedure Elimina_TrattaStradale
+-- -----------------------------------------------------
+
+USE `progetto`;
+DROP procedure IF EXISTS `progetto`.`Elimina_TrattaStradale`;
+
+DELIMITER $$
+USE `progetto`$$
+CREATE PROCEDURE `Elimina_TrattaStradale` (in var_Tratta char(5))
+BEGIN
+	Delete from `TrattaStradale`  where `CodiceIdentificativo`= var_Tratta;
+END$$
+
+DELIMITER ;
+
+-- -----------------------------------------------------
+-- procedure Elimina_WaypointInTratta
+-- -----------------------------------------------------
+
+USE `progetto`;
+DROP procedure IF EXISTS `progetto`.`Elimina_WaypointInTratta`;
+
+DELIMITER $$
+USE `progetto`$$
+CREATE PROCEDURE `Elimina_WaypointInTratta` (in var_Tratta char(5), in var_latitudine float, in var_longitudine float)
+BEGIN
+	Delete from `AggregazioneTratta_Waypoint`  where `TrattaStradale_CodiceIdentificativo`= var_Tratta and `Waypoint_Latitudine`= var_latitudine and `Waypoint_Longitudine` = var_longitudine;
+END$$
+
+DELIMITER ;
+
+-- -----------------------------------------------------
+-- procedure Elimina_Waypoint
+-- -----------------------------------------------------
+
+USE `progetto`;
+DROP procedure IF EXISTS `progetto`.`Elimina_Waypoint`;
+
+DELIMITER $$
+USE `progetto`$$
+CREATE PROCEDURE `Elimina_Waypoint` (in var_latitudine float, in var_longitudine float)
+BEGIN
+	Delete from `Waypoint`  where `Latitudine`= var_latitudine and `Longitudine`= var_longitudine;
+END$$
+
+DELIMITER ;
+
+-- -----------------------------------------------------
+-- procedure Elimina_Fermata
+-- -----------------------------------------------------
+
+USE `progetto`;
+DROP procedure IF EXISTS `progetto`.`Elimina_Fermata`;
+
+DELIMITER $$
+USE `progetto`$$
+CREATE PROCEDURE `Elimina_Fermata` (in var_Fermata char(5))
+BEGIN
+	Delete from `Fermata`  where `CodiceFermata`= var_Fermata;
+END$$
+
+DELIMITER ;
+
+-- -----------------------------------------------------
+-- procedure Elimina_TrattaReale
+-- -----------------------------------------------------
+
+USE `progetto`;
+DROP procedure IF EXISTS `progetto`.`Elimina_TrattaReale`;
+
+DELIMITER $$
+USE `progetto`$$
+CREATE PROCEDURE `Elimina_TrattaReale` (in var_Tratta char(5), in var_DataPartenza date, in var_OrarioPartenza time)
+BEGIN
+		Delete from `TrattaReale`  where `TrattaStradale`= var_Tratta and `DataPartenza`= var_DataPartenza and `OrarioPartenza` = var_OrarioPartenza;
+END$$
+
+DELIMITER ;
+
+-- -----------------------------------------------------
+-- procedure Elimina_VeicoloPubblico
+-- -----------------------------------------------------
+
+USE `progetto`;
+DROP procedure IF EXISTS `progetto`.`Elimina_VeicoloPubblico`;
+
+DELIMITER $$
+USE `progetto`$$
+CREATE PROCEDURE `Elimina_VeicoloPubblico` (in var_Matricola char(4))
+BEGIN
+	Delete from `VeicoloPubblico`  where `Matricola`= var_Matricola;
+END$$
+
+DELIMITER ;
+
+-- -----------------------------------------------------
+-- procedure Elimina_Abbonamento
+-- -----------------------------------------------------
+
+USE `progetto`;
+DROP procedure IF EXISTS `progetto`.`Elimina_Abbonamento`;
+
+DELIMITER $$
+USE `progetto`$$
+CREATE PROCEDURE `Elimina_Abbonamento` (in var_codice int)
+BEGIN
+		Delete from `Abbonamento`  where `Codice`= var_codice;
+END$$
+
+DELIMITER ;
+
+-- -----------------------------------------------------
+-- procedure Elimina_BigliettoElettronico
+-- -----------------------------------------------------
+
+USE `progetto`;
+DROP procedure IF EXISTS `progetto`.`Elimina_BigliettoElettronico`;
+
+DELIMITER $$
+USE `progetto`$$
+CREATE PROCEDURE `Elimina_BigliettoElettronico` (in var_codice int)
+BEGIN
+	Delete from `BigliettoElettronico`  where `CodiceBigliettoEmesso`= var_codice;
+END$$
+
+DELIMITER ;
+
+-- -----------------------------------------------------
+-- procedure Elimina_Manutenzione
+-- -----------------------------------------------------
+
+USE `progetto`;
+DROP procedure IF EXISTS `progetto`.`Elimina_Manutenzione`;
+
+DELIMITER $$
+USE `progetto`$$
+CREATE PROCEDURE `Elimina_Manutenzione` (in var_Veicolo char (4), in var_Data date)
+BEGIN
+	Delete from `Manutenzione`  where `VeicoloPubblico_Matricola`= var_Veicolo and `Data`= var_Data;
+END$$
+
+DELIMITER ;
+
+-- -----------------------------------------------------
+-- procedure Elimina_Utente
+-- -----------------------------------------------------
+
+USE `progetto`;
+DROP procedure IF EXISTS `progetto`.`Elimina_Utente`;
+
+DELIMITER $$
+USE `progetto`$$
+CREATE PROCEDURE `Elimina_Utente` (in var_Username varchar(45))
+BEGIN
+		Delete from `Utenti`  where `Username`= var_Username;
+END$$
+
+DELIMITER ;
 SET SQL_MODE = '';
 DROP USER IF EXISTS AmministratoreServizio;
 SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
@@ -1035,7 +1209,7 @@ CREATE USER 'AmministratoreServizio' IDENTIFIED BY 'amministratoreservizio';
 
 GRANT EXECUTE ON procedure `progetto`.`AssociazioneVeicoli_TrattaReale` TO 'AmministratoreServizio';
 GRANT EXECUTE ON procedure `progetto`.`Aggiungi_NuovoTurno_Conducente` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`EliminareOrarioConducente` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_OrarioConducente` TO 'AmministratoreServizio';
 GRANT EXECUTE ON procedure `progetto`.`SostituzioneTurno` TO 'AmministratoreServizio';
 GRANT EXECUTE ON procedure `progetto`.`EmissioneBiglietto` TO 'AmministratoreServizio';
 GRANT EXECUTE ON procedure `progetto`.`EmissioneAbbonamento` TO 'AmministratoreServizio';
@@ -1050,6 +1224,16 @@ GRANT EXECUTE ON procedure `progetto`.`Aggiungi_VeicoloPubblico` TO 'Amministrat
 GRANT EXECUTE ON procedure `progetto`.`Aggiungi_Waypoint` TO 'AmministratoreServizio';
 GRANT EXECUTE ON procedure `progetto`.`Aggiungi_Waypoint_per_una_tratta` TO 'AmministratoreServizio';
 GRANT EXECUTE ON procedure `progetto`.`Crea_Utente` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_Fermata` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_TrattaStradale` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_VeicoloPubblico` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_WaypointInTratta` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_Abbonamento` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_Conducente` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_Manutenzione` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_TrattaReale` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_Utente` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_Waypoint` TO 'AmministratoreServizio';
 SET SQL_MODE = '';
 DROP USER IF EXISTS Conducente;
 SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
@@ -1071,14 +1255,14 @@ GRANT EXECUTE ON procedure `progetto`.`Login` TO 'Login';
 SET SQL_MODE = '';
 DROP USER IF EXISTS ValidatoreElettronico;
 SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
-CREATE USER 'ValidatoreElettronico' IDENTIFIED BY 'pippo';
+CREATE USER 'ValidatoreElettronico' IDENTIFIED BY 'validatoreelettronico';
 
 GRANT EXECUTE ON procedure `progetto`.`Biglietto_Utilizzato` TO 'ValidatoreElettronico';
 GRANT EXECUTE ON procedure `progetto`.`Abbonamento_Utilizzato` TO 'ValidatoreElettronico';
 SET SQL_MODE = '';
 DROP USER IF EXISTS GPS;
 SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
-CREATE USER 'GPS' IDENTIFIED BY 'pippo';
+CREATE USER 'GPS' IDENTIFIED BY 'globalpositioningsystem';
 
 GRANT EXECUTE ON procedure `progetto`.`InformazioniGPS` TO 'GPS';
 
@@ -1138,6 +1322,7 @@ INSERT INTO `progetto`.`Utenti` (`Username`, `Password`, `Ruolo`) VALUES ('Mario
 INSERT INTO `progetto`.`Utenti` (`Username`, `Password`, `Ruolo`) VALUES ('Giuseppe', 'c81e728d9d4c2f636f067f89cc14862c', 'AmministratoreServizio');
 INSERT INTO `progetto`.`Utenti` (`Username`, `Password`, `Ruolo`) VALUES ('Francesco', 'eccbc87e4b5ce2fe28308fd9f2a7baf3', 'Conducente');
 INSERT INTO `progetto`.`Utenti` (`Username`, `Password`, `Ruolo`) VALUES ('Alessandro', 'a87ff679a2f3e71d9181a67b7542122c', 'Conducente');
+INSERT INTO `progetto`.`Utenti` (`Username`, `Password`, `Ruolo`) VALUES ('Ludovico', 'c4ca4238a0b923820dcc509a6f75849b', 'UtenteSistema');
 
 COMMIT;
 
