@@ -150,6 +150,56 @@ char** tokenizer (char **token_vector, char *stringa, int TipoDiDato){
 	return token_vector;
 }
 
+MYSQL_BIND* setup_mysql_bind(int nparam,void ** data, enum_field_types *type, MYSQL_BIND *param){
+	int i;
+	
+	for (i=0;i<nparam;i++){
+		switch(type[i]){
+			case MYSQL_TYPE_VAR_STRING:
+				param[i].buffer_type=MYSQL_TYPE_VAR_STRING;
+				param[i].buffer= (char*)data[i];
+				param[i].buffer_length=strlen(data[i]);
+				break;
+			case MYSQL_TYPE_STRING:
+				param[i].buffer_type=MYSQL_TYPE_STRING;
+				param[i].buffer= (char*)data[i];
+				param[i].buffer_length=strlen(data[i]);
+				break;
+			case MYSQL_TYPE_DATE:
+				param[i].buffer_type=MYSQL_TYPE_DATE;
+				param[i].buffer= (MYSQL_TIME*)data[i];
+				param[i].buffer_length=sizeof(data[i]);
+				break;
+			
+			case MYSQL_TYPE_DATETIME:
+				param[i].buffer_type=MYSQL_TYPE_DATETIME;
+				param[i].buffer= (MYSQL_TIME*)data[i];
+				param[i].buffer_length=sizeof(data[i]);
+				break;
+			case MYSQL_TYPE_TIME:
+				param[i].buffer_type=MYSQL_TYPE_TIME;
+				param[i].buffer= (MYSQL_TIME*)data[i];
+				param[i].buffer_length=sizeof(data[i]);
+				break;
+			case MYSQL_TYPE_LONG:
+				param[i].buffer_type=MYSQL_TYPE_LONG;
+				param[i].buffer= (int*)data[i];
+				param[i].buffer_length=sizeof(data[i]);
+				break;
+			case MYSQL_TYPE_FLOAT:
+				param[i].buffer_type=MYSQL_TYPE_LONG;
+				param[i].buffer= (float*)data[i];
+				param[i].buffer_length=sizeof(data[i]);
+				break;
+			default:
+				printf("ERROR: Unhandled type");
+					abort();
+			}
+	}
+	return param;
+}
+
+
 
 void dump_result_set(MYSQL* conn, MYSQL_STMT* stmt, char* title)
 {
@@ -274,7 +324,10 @@ void dump_result_set(MYSQL* conn, MYSQL_STMT* stmt, char* title)
 					date = (MYSQL_TIME*)rs_bind[i].buffer;
 					printf(" %d-%02d-%02d |", date->year, date->month, date->day);
 					break;
-
+				case MYSQL_TYPE_TIME:
+					date=((MYSQL_TIME*)rs_bind[i].buffer);
+					printf(" %d-%02d-%02d |",date->hour,date->minute,date->second);
+					break;
 				case MYSQL_TYPE_STRING:
 					printf(" %-*s |", (int)fields[i].max_length, (char*)rs_bind[i].buffer);
 					break;
