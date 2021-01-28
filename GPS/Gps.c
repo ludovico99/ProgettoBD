@@ -60,9 +60,22 @@ int main(void) {
 		}
 		
 		
+	void *data[3];
+	data[0]=(void*)veicolo;
+	data[1]=(void*)&latitudine;
+	data[2]=(void*)&longitudine;
+	
+	enum_field_types type[3];
+	type[0]=MYSQL_TYPE_VAR_STRING;
+	type[1]=MYSQL_TYPE_FLOAT;
+	type[2]=MYSQL_TYPE_FLOAT;
+
+	
 	memset(param, 0, sizeof(param));
+	
+	setup_mysql_bind(3,data,type,param);
 		
-	param[0].buffer_type = MYSQL_TYPE_STRING; 
+	/*param[0].buffer_type = MYSQL_TYPE_STRING; 
 	param[0].buffer = veicolo;
 	param[0].buffer_length = strlen(veicolo);
 
@@ -72,7 +85,7 @@ int main(void) {
 
 	param[2].buffer_type = MYSQL_TYPE_FLOAT; 
 	param[2].buffer = &longitudine;
-	param[2].buffer_length = sizeof(longitudine);
+	param[2].buffer_length = sizeof(longitudine);*/
 
 	if (mysql_stmt_bind_param(stmt, param) != 0) { 
 		print_stmt_error(stmt, "Could not bind parameters for gps");

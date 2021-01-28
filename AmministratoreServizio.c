@@ -204,7 +204,7 @@ riprova2:
 	data[7]=(void*)scadenza_patente;
 	data[8]=(void*)veicolo_Assegnato;
 	
-	enum_field_types type[1];
+	enum_field_types type[9];
 	type[0]=MYSQL_TYPE_STRING;
 	type[1]=MYSQL_TYPE_VAR_STRING;
 	type[2]=MYSQL_TYPE_VAR_STRING;
@@ -1293,10 +1293,22 @@ riprova2:
 	}
 	
 	
-	// Prepare parameters
-	memset(param, 0, sizeof(param));
+	void *data[3];
+	data[0]=(void*)conducente_cf;
+	data[1]=(void*)inizioTurno;
+	data[2]=(void*)fineTurno;
+	
+	enum_field_types type[3];
+	type[0]=MYSQL_TYPE_STRING;
+	type[1]=MYSQL_TYPE_DATETIME;
+	type[2]=MYSQL_TYPE_DATETIME;
 
-	param[0].buffer_type = MYSQL_TYPE_STRING;
+	
+	memset(param, 0, sizeof(param));
+	
+	setup_mysql_bind(3,data,type,param);
+	
+	/*param[0].buffer_type = MYSQL_TYPE_STRING;
 	param[0].buffer = conducente_cf;
 	param[0].buffer_length = strlen(conducente_cf);
 	
@@ -1306,7 +1318,7 @@ riprova2:
 	
 	param[2].buffer_type = MYSQL_TYPE_DATETIME;
 	param[2].buffer = fineTurno;
-	param[2].buffer_length = sizeof(fineTurno);
+	param[2].buffer_length = sizeof(fineTurno);*/
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
 		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for work shift\n", true);
@@ -1383,15 +1395,27 @@ riprova1:
 	fineTurno->hour = atoi(token_vectorFineTurno[3]);
 	fineTurno->minute = atoi(token_vectorFineTurno[4]);
 	
-	if(!setup_prepared_stmt(&prepared_stmt, "call EliminaOrarioConducente(?,?,?)", conn)) {
+	if(!setup_prepared_stmt(&prepared_stmt, "call Elimina_OrarioConducente(?,?,?)", conn)) {
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize work shift statement\n", false);
 	}
 	
 	
-	// Prepare parameters
-	memset(param, 0, sizeof(param));
+	void *data[3];
+	data[0]=(void*)conducente_cf;
+	data[1]=(void*)inizioTurno;
+	data[2]=(void*)fineTurno;
+	
+	enum_field_types type[3];
+	type[0]=MYSQL_TYPE_STRING;
+	type[1]=MYSQL_TYPE_DATETIME;
+	type[2]=MYSQL_TYPE_DATETIME;
 
-	param[0].buffer_type = MYSQL_TYPE_STRING;
+	
+	memset(param, 0, sizeof(param));
+	
+	setup_mysql_bind(3,data,type,param);
+
+	/*param[0].buffer_type = MYSQL_TYPE_STRING;
 	param[0].buffer = conducente_cf;
 	param[0].buffer_length = strlen(conducente_cf);
 	
@@ -1401,7 +1425,7 @@ riprova1:
 	
 	param[2].buffer_type = MYSQL_TYPE_DATETIME;
 	param[2].buffer = fineTurno;
-	param[2].buffer_length = sizeof(fineTurno);
+	param[2].buffer_length = sizeof(fineTurno);*/
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
 		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for work shift elimination\n", true);
@@ -1409,7 +1433,7 @@ riprova1:
 
 	// Run procedure
 	if (mysql_stmt_execute(prepared_stmt) != 0) {
-		print_stmt_error(prepared_stmt, "An error occurred while retrieving the work shift elimination.");
+		print_stmt_error(prepared_stmt, "An error occurred while deleting the work shift .");
 		goto out;
 	}
 
@@ -1484,10 +1508,22 @@ riprova2:
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to find drivers for replacement statements\n", false);
 	}
 
-	// Prepare parameters
+	void *data[3];
+	data[0]=(void*)conducente_cf;
+	data[1]=(void*)inizioTurno;
+	data[2]=(void*)fineTurno;
+	
+	enum_field_types type[3];
+	type[0]=MYSQL_TYPE_STRING;
+	type[1]=MYSQL_TYPE_DATETIME;
+	type[2]=MYSQL_TYPE_DATETIME;
+
+	
 	memset(param, 0, sizeof(param));
 	
-	param[0].buffer_type = MYSQL_TYPE_STRING;
+	setup_mysql_bind(3,data,type,param);
+	
+	/*param[0].buffer_type = MYSQL_TYPE_STRING;
 	param[0].buffer = conducente_cf;
 	param[0].buffer_length = strlen(conducente_cf);
 	
@@ -1497,7 +1533,7 @@ riprova2:
 	
 	param[2].buffer_type = MYSQL_TYPE_DATETIME;
 	param[2].buffer = fineTurno;
-	param[2].buffer_length = sizeof(fineTurno);
+	param[2].buffer_length = sizeof(fineTurno);*/
 	
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
@@ -1601,10 +1637,24 @@ riprova2:
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to replace driver statements\n", false);
 	}
 
-	// Prepare parameters
+	void *data[4];
+	data[0]=(void*)conducente_sostituto;
+	data[1]=(void*)conducente_cf;
+	data[2]=(void*)inizioTurno;
+	data[3]=(void*)fineTurno;
+	
+	enum_field_types type[4];
+	type[0]=MYSQL_TYPE_STRING;
+	type[1]=MYSQL_TYPE_STRING;
+	type[2]=MYSQL_TYPE_DATETIME;
+	type[3]=MYSQL_TYPE_DATETIME;
+
+	
 	memset(param, 0, sizeof(param));
 	
-	param[0].buffer_type = MYSQL_TYPE_STRING;
+	setup_mysql_bind(4,data,type,param);
+	
+	/*param[0].buffer_type = MYSQL_TYPE_STRING;
 	param[0].buffer = conducente_sostituto;
 	param[0].buffer_length = strlen(conducente_sostituto);
 	
@@ -1618,7 +1668,7 @@ riprova2:
 	
 	param[3].buffer_type = MYSQL_TYPE_DATETIME;
 	param[3].buffer = fineTurno;
-	param[3].buffer_length = sizeof(fineTurno);
+	param[3].buffer_length = sizeof(fineTurno);*/
 	
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
@@ -1641,7 +1691,8 @@ riprova2:
 static void link_vehicleWithRealRoute(MYSQL* conn){
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[4];
-	char buff[46];
+	char buff1[46];
+	char buff2[46];
 	
 	char *token_vectorData[4];
 	char *token_vectorOrario[3];
@@ -1662,8 +1713,8 @@ static void link_vehicleWithRealRoute(MYSQL* conn){
 	getInput(6, codiceTratta, false);
 	printf("\nInserisci la data di partenza (yyyy-mm-hh): ");
 riprova1:
-	getInput(46, buff, false);
-	tokenizer(token_vectorData,buff,0);
+	getInput(46, buff1, false);
+	tokenizer(token_vectorData,buff1,0);
 	for (int i=0; i<3;i++){
 		if(token_vectorData[i] == NULL){
 			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
@@ -1673,8 +1724,8 @@ riprova1:
 	
 	printf("\nInserisci l'orario di partenza (hh-mm): ");
 riprova2:
-	getInput(46, buff, false);
-	tokenizer(token_vectorOrario,buff,1);
+	getInput(46, buff2, false);
+	tokenizer(token_vectorOrario,buff2,1);
 	for (int i=0; i<2;i++){
 		if(token_vectorOrario[i] == NULL){
 			printf ("Orario inserito non corretto. Reinserirlo (hh-mm): ");
@@ -1685,14 +1736,12 @@ riprova2:
 	dataPartenza->year = atoi(token_vectorData[0]);
 	dataPartenza->month = atoi(token_vectorData[1]);
 	dataPartenza->day = atoi(token_vectorData[2]);
-
+	printf("%d",dataPartenza->year);
+	printf("%d",dataPartenza->month);
 
 	orarioPartenza->hour = atoi(token_vectorOrario[0]);
 	orarioPartenza->minute = atoi(token_vectorOrario[1]);
-	orarioPartenza->day=0;
-	orarioPartenza->second=0;
-	orarioPartenza->second_part=0;
-
+	
 	printf("\nInserisci il veicolo che si vuole assegnare a questa tratta (4 cifre): ");
 	getInput(5, veicoloAssociato, false);
 	
@@ -1701,10 +1750,24 @@ riprova2:
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize real route insertion statement\n", false);
 	}
 
-	// Prepare parameters
+	void *data[4];
+	data[0]=(void*)codiceTratta;
+	data[1]=(void*)veicoloAssociato;
+	data[2]=(void*)orarioPartenza;
+	data[3]=(void*)dataPartenza;
+	
+	enum_field_types type[4];
+	type[0]=MYSQL_TYPE_STRING;
+	type[1]=MYSQL_TYPE_STRING;
+	type[2]=MYSQL_TYPE_TIME;
+	type[3]=MYSQL_TYPE_DATE;
+
+	
 	memset(param, 0, sizeof(param));
 	
-	param[0].buffer_type = MYSQL_TYPE_STRING;
+	setup_mysql_bind(4,data,type,param);
+	
+	/*param[0].buffer_type = MYSQL_TYPE_STRING;
 	param[0].buffer = codiceTratta;
 	param[0].buffer_length = strlen(codiceTratta);
 	
@@ -1718,7 +1781,7 @@ riprova2:
 	
 	param[3].buffer_type = MYSQL_TYPE_DATE;
 	param[3].buffer = dataPartenza;
-	param[3].buffer_length = sizeof(dataPartenza);
+	param[3].buffer_length = sizeof(dataPartenza);*/
 	
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
@@ -1958,12 +2021,20 @@ static void driver_healed (MYSQL *conn){
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize driver healed statements\n", false);
 	}
 
-	// Prepare parameters
+	void *data[1];
+	data[0]=(void*)codiceFiscale;
+	
+	enum_field_types type[1];
+	type[0]=MYSQL_TYPE_STRING;
+	
+	
 	memset(param, 0, sizeof(param));
 	
-	param[0].buffer_type = MYSQL_TYPE_STRING;
+	setup_mysql_bind(1,data,type,param);
+	
+	/*param[0].buffer_type = MYSQL_TYPE_STRING;
 	param[0].buffer = codiceFiscale;
-	param[0].buffer_length = strlen(codiceFiscale);
+	param[0].buffer_length = strlen(codiceFiscale);*/
 
 	
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
@@ -1980,11 +2051,64 @@ static void driver_healed (MYSQL *conn){
 out:
 	mysql_stmt_close(prepared_stmt);
 }
+
+static void link_driverWithVehicle (MYSQL *conn){
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[2];
+
+	char codiceFiscale[17];
+	char veicolo[5];
+	printf("\nInserisci il codice fiscale del conducente che si vuole associare (16 caratteri): ");
+	getInput(17, codiceFiscale, false);
+	
+	printf("\nInserisci il veicolo che si vuole associare (4 caratteri): ");
+	getInput(5, veicolo, false);
+	
+	if (!setup_prepared_stmt(&prepared_stmt, "call AssociareConducente_Veicolo(?,?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize driver linking statements\n", false);
+	}
+
+	void *data[2];
+	data[0]=(void*)codiceFiscale;
+	data[1]=(void*)veicolo;
+	
+	enum_field_types type[2];
+	type[0]=MYSQL_TYPE_STRING;
+	type[1]=MYSQL_TYPE_STRING;
+	
+	
+	memset(param, 0, sizeof(param));
+	
+	setup_mysql_bind(2,data,type,param);
+	
+	/*param[0].buffer_type = MYSQL_TYPE_STRING;
+	param[0].buffer = codiceFiscale;
+	param[0].buffer_length = strlen(codiceFiscale);
+	
+	param[1].buffer_type = MYSQL_TYPE_STRING;
+	param[1].buffer = veicolo;
+	param[1].buffer_length = strlen(veicolo);*/
+
+	
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for driver linking procedure\n", true);
+	}
+
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while executing the driver linking procedure.");
+		goto out;
+	}
+	printf("Driver link procedure correctly done\n");
+
+out:
+	mysql_stmt_close(prepared_stmt);
+}
 	
 
 void run_as_administrator(MYSQL* conn)
 {
-	const char* options[29] = {"1", "2", "3", "4", "5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29"};
+	const char* options[30] = {"1", "2", "3", "4", "5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30"};
 	int op;
 
 	printf("Switching to administrative role...\n");
@@ -2031,9 +2155,10 @@ void run_as_administrator(MYSQL* conn)
 		printf("26) Emettere abbonamento\n");
 		printf("27) Eliminare abbonamento\n");
 		printf("28) Conducente guarito\n");
-		printf("29) Quit\n");
+		printf("29) Associare un conducente ad un veicolo\n");
+		printf("30) Quit\n");
 
-		op = atoi(multiChoice("Select an option", options, 29));
+		op = atoi(multiChoice("Select an option", options, 30));
 
 		switch (op) {
 		case 1:
@@ -2121,6 +2246,9 @@ void run_as_administrator(MYSQL* conn)
 			driver_healed(conn);
 			break;
 		case 29:
+			link_driverWithVehicle(conn);
+			break;
+		case 30:
 			return;
 		default:
 			fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);

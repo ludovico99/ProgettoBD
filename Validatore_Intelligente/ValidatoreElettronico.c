@@ -28,15 +28,23 @@ void transportPass_used(int signo){
 		}
 		
 		
-	memset(param, 0, sizeof(param));
+	void *data[2];
+	data[0]=(void*)&codice;
+	data[1]=(void*)veicolo;
+	
+	enum_field_types type[2];
+	type[0]=MYSQL_TYPE_LONG;
+	type[1]=MYSQL_TYPE_STRING;
+	
+	setup_mysql_bind(2,data,type,param);
 		
-	param[0].buffer_type = MYSQL_TYPE_LONG; 
+	/*param[0].buffer_type = MYSQL_TYPE_LONG; 
 	param[0].buffer = &codice;
 	param[0].buffer_length = sizeof(codice);
 
 	param[1].buffer_type = MYSQL_TYPE_STRING; 
 	param[1].buffer = veicolo;
-	param[1].buffer_length = strlen(veicolo);
+	param[1].buffer_length = strlen(veicolo);*/
 
 
 	if (mysql_stmt_bind_param(stmt, param) != 0) { 
@@ -69,15 +77,26 @@ void ticket_used (int signo){
 		}
 		
 		
+	void *data[2];
+	data[0]=(void*)&codice;
+	data[1]=(void*)veicolo;
+	
+	enum_field_types type[2];
+	type[0]=MYSQL_TYPE_LONG;
+	type[1]=MYSQL_TYPE_STRING;
+
+	
 	memset(param, 0, sizeof(param));
+	
+	setup_mysql_bind(2,data,type,param);
 		
-	param[0].buffer_type = MYSQL_TYPE_LONG; 
+	/*param[0].buffer_type = MYSQL_TYPE_LONG; 
 	param[0].buffer = &codice;
 	param[0].buffer_length = sizeof(codice);
 
 	param[1].buffer_type = MYSQL_TYPE_STRING; 
 	param[1].buffer = veicolo;
-	param[1].buffer_length = strlen(veicolo);
+	param[1].buffer_length = strlen(veicolo);*/
 
 
 	if (mysql_stmt_bind_param(stmt, param) != 0) { 
