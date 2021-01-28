@@ -115,6 +115,8 @@ static void handler(int s) {
 	signo = s;
 }
 
+
+
 char* multiChoice(const char* domanda, const char* choices[], int num)
 {
 

@@ -158,38 +158,38 @@ MYSQL_BIND* setup_mysql_bind(int nparam,void **data, enum_field_types *type, MYS
 			case MYSQL_TYPE_VAR_STRING:
 				param[i].buffer_type=MYSQL_TYPE_VAR_STRING;
 				param[i].buffer= (char*)data[i];
-				param[i].buffer_length=strlen(data[i]);
+				param[i].buffer_length=strlen((char*)data[i]);
 				break;
 			case MYSQL_TYPE_STRING:
 				param[i].buffer_type=MYSQL_TYPE_STRING;
 				param[i].buffer= (char*)data[i];
-				param[i].buffer_length=strlen(data[i]);
+				param[i].buffer_length=strlen((char*)data[i]);
 				break;
 			case MYSQL_TYPE_DATE:
 				param[i].buffer_type=MYSQL_TYPE_DATE;
 				param[i].buffer= (MYSQL_TIME*)data[i];
-				param[i].buffer_length=sizeof(data[i]);
+				param[i].buffer_length=sizeof((MYSQL_TIME*)data[i]);
 				break;
 			
 			case MYSQL_TYPE_DATETIME:
 				param[i].buffer_type=MYSQL_TYPE_DATETIME;
 				param[i].buffer= (MYSQL_TIME*)data[i];
-				param[i].buffer_length=sizeof(data[i]);
+				param[i].buffer_length=sizeof((MYSQL_TIME*)data[i]);
 				break;
 			case MYSQL_TYPE_TIME:
 				param[i].buffer_type=MYSQL_TYPE_TIME;
 				param[i].buffer= (MYSQL_TIME*)data[i];
-				param[i].buffer_length=sizeof(data[i]);
+				param[i].buffer_length=sizeof((MYSQL_TIME*)data[i]);
 				break;
 			case MYSQL_TYPE_LONG:
 				param[i].buffer_type=MYSQL_TYPE_LONG;
 				param[i].buffer= (int*)data[i];
-				param[i].buffer_length=sizeof(*data[i]);
+				param[i].buffer_length=sizeof(*(int*)data[i]);
 				break;
 			case MYSQL_TYPE_FLOAT:
 				param[i].buffer_type=MYSQL_TYPE_FLOAT;
 				param[i].buffer= (float*)data[i];
-				param[i].buffer_length=sizeof(*data[i]);
+				param[i].buffer_length=sizeof(*(float*)data[i]);
 				break;
 			default:
 				printf("ERROR: Unhandled type");
