@@ -114,13 +114,14 @@ static void delete_vehicle(MYSQL *conn){
 }
 
 static void add_driver(MYSQL* conn)
-{
+{	
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[9];
 	char* token_vector_dataNascita[4];
 	char* token_vector_scadenzaPatente[4];
 	char buff1[46];
 	char buff2[46];
+	char buff3[4];
 	char cf[17];
 	char username[46];
 	char nome[46];
@@ -130,6 +131,7 @@ static void add_driver(MYSQL* conn)
 	char luogo_nascita[46];
 	char numero_patente[11];
 	char veicolo_Assegnato[5];
+	int risposta=1;
 	
 	memset(data_nascita, 0, sizeof(data_nascita));
 	memset(scadenza_patente, 0, sizeof(scadenza_patente));
@@ -168,17 +170,20 @@ riprova2:
 	 		goto riprova2;
 		}
 	}
-	
-	/*printf("Si desidera inserire un veicolo per il conducente: (yes/no)")
-	getiInput(46,buff,false);
-	if (strcmp(buff,"no"){
-		
+riprova3:	
+	printf("\nSi desidera inserire un veicolo per il conducente(yes/no): ");
+	getInput(4,buff3,false);
+	if ((risposta=(strcmp(buff3,"no")))==0){
 		goto no;
-	}*/
+	}
+	else if ((strcmp(buff3,"yes"))!=0){
+		printf("\nRisposta non valida.\nReinserirla.\n");
+		goto riprova3;
+	}
 	
-	printf("\nInserisci il veicolo assegnato(4 cifre) : ");
+	printf("\nInserisci il veicolo assegnato(4 cifre): ");
 	getInput(5, veicolo_Assegnato, false);
-	
+no:	
 	data_nascita->year = atoi (token_vector_dataNascita[0]);
 	data_nascita->month = atoi (token_vector_dataNascita[1]);
 	data_nascita->day = atoi (token_vector_dataNascita[2]);
@@ -206,7 +211,7 @@ riprova2:
 	data[7]=(void*)scadenza_patente;
 	data[8]=(void*)veicolo_Assegnato;
 	
-	enum_field_types type[9];
+	enum_field_types type[1];
 	type[0]=MYSQL_TYPE_STRING;
 	type[1]=MYSQL_TYPE_VAR_STRING;
 	type[2]=MYSQL_TYPE_VAR_STRING;
@@ -215,7 +220,8 @@ riprova2:
 	type[5]=MYSQL_TYPE_VAR_STRING;
 	type[6]=MYSQL_TYPE_STRING;
 	type[7]=MYSQL_TYPE_DATE;
-	type[8]=MYSQL_TYPE_STRING;
+	if (risposta==0) type[8]=MYSQL_TYPE_NULL;
+	else type[8]=MYSQL_TYPE_STRING;
 	
 	
 	memset(param, 0, sizeof(param));
@@ -655,7 +661,8 @@ static void delete_route(MYSQL *conn){
 static void add_realRoute(MYSQL* conn){
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[4];
-	char buff[46];
+	char buff1[46];
+	char buff2[46];
 	char *token_vectorData[4];
 	char *token_vectorOrario[3];
 	char codiceTratta[6];
@@ -666,16 +673,12 @@ static void add_realRoute(MYSQL* conn){
 	memset(dataPartenza, 0, sizeof(dataPartenza));
 	memset(orarioPartenza, 0, sizeof(orarioPartenza));
 	
-	dataPartenza->time_type = MYSQL_TIMESTAMP_DATE;
-	orarioPartenza->time_type = MYSQL_TIMESTAMP_TIME;
-
-	
 	printf("\nInserisci il codice di tratta (5 cifre): ");
 	getInput(6, codiceTratta, false);
 	printf("\nInserisci la data di partenza (yyyy-mm-hh): ");
 riprova1:
-	getInput(46, buff, false);
-	tokenizer(token_vectorData,buff,0);
+	getInput(46, buff1, false);
+	tokenizer(token_vectorData,buff1,0);
 	for (int i=0; i<3;i++){
 		if(token_vectorData[i] == NULL){
 			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
@@ -690,8 +693,8 @@ riprova1:
 	
 	printf("\nInserisci l'orario di partenza (hh:mm): ");
 riprova2:
-	getInput(46, buff, false);
-	tokenizer(token_vectorOrario,buff,1);
+	getInput(46, buff2, false);
+	tokenizer(token_vectorOrario,buff2,1);
 	for (int i=0; i<2;i++){
 		if(token_vectorOrario[i] == NULL){
 			printf ("Orario inserito non corretto. Reinserirlo (hh:mm): ");

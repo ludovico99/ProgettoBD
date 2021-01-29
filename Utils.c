@@ -191,6 +191,9 @@ MYSQL_BIND* setup_mysql_bind(int nparam,void **data, enum_field_types *type, MYS
 				param[i].buffer= (float*)data[i];
 				param[i].buffer_length=sizeof(*(float*)data[i]);
 				break;
+			case MYSQL_TYPE_NULL:
+				param[i].buffer_type=MYSQL_TYPE_NULL;
+				break;	
 			default:
 				printf("ERROR: Unhandled type");
 					abort();

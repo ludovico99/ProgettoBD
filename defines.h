@@ -17,7 +17,7 @@ struct configuration {
 extern struct configuration conf;
 
 extern MYSQL_BIND* setup_mysql_bind(int nparam,void ** data, enum_field_types *type, MYSQL_BIND *param);
-extern int parse_config(const char* path, struct configuration* conf);
+extern int parse_config(char* path, struct configuration* conf);
 extern char *getInput(unsigned int lung, char *stringa, bool hide);
 extern bool yesOrNo(char *domanda, char yes, char no, bool predef, bool insensitive);
 extern char* multiChoice(const char *domanda, const char* choices[], int num);
