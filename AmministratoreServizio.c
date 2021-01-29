@@ -4,10 +4,21 @@
 #include <signal.h>
 #include "defines.h"
 
+//Ho inserito queste variabili globali affinchè le funzioni find_workShift e replace_workShift possano eseguire sia singolarmente sia in successione. In quest'ultimo caso evito di reinserire parametri passati in precedenza. 
+static char global_conducente_cf[17];
+static char global_conducente_selezionato[17];
+static MYSQL_TIME global_inizioTurno[1];
+static MYSQL_TIME global_fineTurno[1];
+static int setted=0;
+
+
+
 static void add_vehicle(MYSQL* conn){
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[2];
 	char buff[46];
+	void *data[2];
+	enum_field_types type[2];
 	
 	// Get the required information
 	char veicolo[5];
@@ -41,17 +52,15 @@ riprova:
 
 	}
 
-	// Prepare parameters
+	data[0]=(void*)veicolo;
+	data[1]=(void*)dataAcquisto;
+	
+	type[0]=MYSQL_TYPE_STRING;
+	type[1]=MYSQL_TYPE_DATE;
+	
 	memset(param, 0, sizeof(param));
 	
-	param[0].buffer_type = MYSQL_TYPE_STRING;
-	param[0].buffer = veicolo;
-	param[0].buffer_length = strlen(veicolo);
-
-	param[1].buffer_type = MYSQL_TYPE_DATE;
-	param[1].buffer = dataAcquisto;
-	param[1].buffer_length = sizeof(dataAcquisto);
-
+	setup_mysql_bind(2,data,type,param);
 
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
@@ -75,7 +84,8 @@ static void delete_vehicle(MYSQL *conn){
 	MYSQL_STMT *prepared_stmt;
 	MYSQL_BIND param[1];
 	char veicolo[5];
-
+	void *data[1];
+	enum_field_types type[1];
 
 	printf("\nInserisci la matricola del veicolo che si intende eliminare (4 cifre): ");
 	getInput(5, veicolo, false);
@@ -87,10 +97,8 @@ static void delete_vehicle(MYSQL *conn){
 	}
 
 	
-	void *data[1];
 	data[0]=(void*)veicolo;
 	
-	enum_field_types type[1];
 	type[0]=MYSQL_TYPE_STRING;
 	
 	memset(param, 0, sizeof(param));
@@ -131,6 +139,8 @@ static void add_driver(MYSQL* conn)
 	char luogo_nascita[46];
 	char numero_patente[11];
 	char veicolo_Assegnato[5];
+	void *data[9];
+	enum_field_types type[9];
 	int risposta=1;
 	
 	memset(data_nascita, 0, sizeof(data_nascita));
@@ -200,7 +210,6 @@ no:
 	// Prepare parameters
 	memset(param, 0, sizeof(param));
 
-	void *data[9];
 	data[0]=(void*)cf;
 	data[1]=(void*)username;
 	data[2]=(void*)nome;
@@ -211,7 +220,6 @@ no:
 	data[7]=(void*)scadenza_patente;
 	data[8]=(void*)veicolo_Assegnato;
 	
-	enum_field_types type[1];
 	type[0]=MYSQL_TYPE_STRING;
 	type[1]=MYSQL_TYPE_VAR_STRING;
 	type[2]=MYSQL_TYPE_VAR_STRING;
@@ -248,7 +256,8 @@ static void delete_driver(MYSQL *conn){
 	MYSQL_STMT *prepared_stmt;
 	MYSQL_BIND param[1];
 	char cf[17];
-
+	void *data[1];
+	enum_field_types type[1];
 
 	printf("\nInserisci il codice fiscale del conducente che si intende eliminare: ");
 	getInput(17, cf, false);
@@ -260,10 +269,8 @@ static void delete_driver(MYSQL *conn){
 	}
 
 	
-	void *data[1];
 	data[0]=(void*)cf;
 	
-	enum_field_types type[1];
 	type[0]=MYSQL_TYPE_STRING;
 	
 	memset(param, 0, sizeof(param));
@@ -290,6 +297,8 @@ static void add_busStop(MYSQL* conn)
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[3];
 	char buff[10];
+	void *data[3];
+	enum_field_types type[3];
 
 	// Input for the registration routine
 	char fermata[6];
@@ -312,12 +321,10 @@ static void add_busStop(MYSQL* conn)
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize waypoint insertion statement\n", false);
 	}
 
-	void *data[3];
 	data[0]=(void*)fermata;
 	data[1]=(void*)&latitudine;
 	data[2]=(void*)&longitudine;
 	
-	enum_field_types type[3];
 	type[0]=MYSQL_TYPE_STRING;
 	type[1]=MYSQL_TYPE_FLOAT;
 	type[2]=MYSQL_TYPE_FLOAT;
@@ -326,18 +333,6 @@ static void add_busStop(MYSQL* conn)
 	setup_mysql_bind(3,data,type,param);
 	
 	
-	/*param[0].buffer_type = MYSQL_TYPE_STRING;
-	param[0].buffer = fermata;
-	param[0].buffer_length = strlen(fermata);
-
-	param[1].buffer_type = MYSQL_TYPE_FLOAT;
-	param[1].buffer = &latitudine;
-	param[1].buffer_length = sizeof(latitudine);
-
-	param[2].buffer_type = MYSQL_TYPE_FLOAT;
-	param[2].buffer = &longitudine;
-	param[2].buffer_length = sizeof(longitudine);*/
-
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
 		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for bus stop insertion\n", true);
@@ -359,6 +354,8 @@ static void delete_busStop(MYSQL *conn){
 	MYSQL_STMT *prepared_stmt;
 	MYSQL_BIND param[1];
 	char fermata[6];
+	void *data[1];
+	enum_field_types type[1];
 
 
 	printf("\nInserisci il codice di fermata che si vuole eliminare (5 cifre): ");
@@ -371,10 +368,8 @@ static void delete_busStop(MYSQL *conn){
 	}
 
 	
-	void *data[1];
 	data[0]=(void*)fermata;
 	
-	enum_field_types type[1];
 	type[0]=MYSQL_TYPE_STRING;
 	
 	memset(param, 0, sizeof(param));
@@ -406,6 +401,8 @@ static void add_vehicleMaintenance(MYSQL* conn){
 	MYSQL_TIME dataManutenzione[1];
 	float costo;
 	char tipoIntervento[46];
+	void *data[4];
+	enum_field_types type[4];
 	
 	memset(dataManutenzione, 0, sizeof(dataManutenzione));
 	
@@ -440,13 +437,11 @@ static void add_vehicleMaintenance(MYSQL* conn){
 	// Prepare parameters
 	memset(param, 0, sizeof(param));
 	
-	void *data[4];
 	data[0]=(void*)veicolo;
 	data[1]=(void*)dataManutenzione;
 	data[2]=(void*)&costo;
 	data[3]=(void*)tipoIntervento;
 	
-	enum_field_types type[4];
 	type[0]=MYSQL_TYPE_STRING;
 	type[1]=MYSQL_TYPE_DATE;
 	type[2]=MYSQL_TYPE_FLOAT;
@@ -456,24 +451,6 @@ static void add_vehicleMaintenance(MYSQL* conn){
 	
 	setup_mysql_bind(4,data,type,param);
 	
-	
-	/*param[0].buffer_type = MYSQL_TYPE_STRING;
-	param[0].buffer = veicolo;
-	param[0].buffer_length = strlen(veicolo);
-
-	param[1].buffer_type = MYSQL_TYPE_DATE;
-	param[1].buffer = data;
-	param[1].buffer_length = sizeof(data);
-
-	param[2].buffer_type = MYSQL_TYPE_FLOAT;
-	param[2].buffer = &costo;
-	param[2].buffer_length = sizeof(costo);
-	
-	param[3].buffer_type = MYSQL_TYPE_VAR_STRING;
-	param[3].buffer = tipoIntervento;
-	param[3].buffer_length = strlen(tipoIntervento);*/
-
-
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
 		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for maintenace insertion\n", true);
 	}
@@ -497,6 +474,8 @@ static void delete_vehicleMaintenance(MYSQL *conn){
 	char buff[46];
 	char *token_vector[4];
 	MYSQL_TIME dataManutenzione[1];
+	void *data[2];
+	enum_field_types type[2];
 
 
 	memset(dataManutenzione, 0, sizeof(dataManutenzione));
@@ -523,12 +502,10 @@ static void delete_vehicleMaintenance(MYSQL *conn){
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize delete vehicle maintenance statements\n", false);
 	}
 
-	
-	void *data[2];
+
 	data[0]=(void*)veicolo;
 	data[1]=(void*)dataManutenzione;
 	
-	enum_field_types type[2];
 	type[0]=MYSQL_TYPE_STRING;
 	type[1]=MYSQL_TYPE_DATE;
 	
@@ -556,9 +533,10 @@ static void add_route(MYSQL* conn){
 	MYSQL_BIND param[3];
 	
 	char codiceTratta[6];
-
 	char primaFermata[6];
 	char ultimaFermata[6];
+	void *data[3];
+	enum_field_types type[3];
 	
 	
 	printf("\nInserisci il codice di tratta(5 cifre): ");
@@ -573,12 +551,10 @@ static void add_route(MYSQL* conn){
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize route insertion statement\n", false);
 	}
 
-	void *data[3];
 	data[0]=(void*)codiceTratta;
 	data[1]=(void*)primaFermata;
 	data[2]=(void*)ultimaFermata;
 	
-	enum_field_types type[3];
 	type[0]=MYSQL_TYPE_STRING;
 	type[1]=MYSQL_TYPE_STRING;
 	type[2]=MYSQL_TYPE_STRING;
@@ -586,19 +562,6 @@ static void add_route(MYSQL* conn){
 	memset(param, 0, sizeof(param));
 	
 	setup_mysql_bind(3,data,type,param);
-	
-	/*param[0].buffer_type = MYSQL_TYPE_STRING;
-	param[0].buffer = codiceTratta;
-	param[0].buffer_length = strlen(codiceTratta);
-	
-	param[1].buffer_type = MYSQL_TYPE_STRING;
-	param[1].buffer = primaFermata;
-	param[1].buffer_length = strlen(primaFermata);
-	
-	param[2].buffer_type = MYSQL_TYPE_STRING;
-	param[2].buffer = ultimaFermata;
-	param[2].buffer_length = strlen(ultimaFermata);*/
-
 	
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
@@ -621,6 +584,8 @@ static void delete_route(MYSQL *conn){
 	MYSQL_STMT *prepared_stmt;
 	MYSQL_BIND param[1];
 	char tratta[6];
+	void *data[1];
+	enum_field_types type[1];
 
 
 	printf("\nInserisci il codice della tratta che si intende eliminare(5 cifre): ");
@@ -633,10 +598,8 @@ static void delete_route(MYSQL *conn){
 	}
 
 	
-	void *data[1];
 	data[0]=(void*)tratta;
 	
-	enum_field_types type[1];
 	type[0]=MYSQL_TYPE_STRING;
 	
 	memset(param, 0, sizeof(param));
@@ -669,6 +632,8 @@ static void add_realRoute(MYSQL* conn){
 	MYSQL_TIME dataPartenza[1];
 	MYSQL_TIME orarioPartenza[1];
 	char veicoloAssociato[5];
+	void *data[4];
+	enum_field_types type[4];
 	
 	memset(dataPartenza, 0, sizeof(dataPartenza));
 	memset(orarioPartenza, 0, sizeof(orarioPartenza));
@@ -713,14 +678,11 @@ riprova2:
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize real route insertion statement\n", false);
 	}
 
-	void *data[4];
 	data[0]=(void*)codiceTratta;
 	data[1]=(void*)dataPartenza;
 	data[2]=(void*)orarioPartenza;
 	data[3]=(void*)veicoloAssociato;
 	
-	
-	enum_field_types type[4];
 	type[0]=MYSQL_TYPE_STRING;
 	type[1]=MYSQL_TYPE_DATE;
 	type[2]=MYSQL_TYPE_TIME;
@@ -729,23 +691,6 @@ riprova2:
 	memset(param, 0, sizeof(param));
 	
 	setup_mysql_bind(4,data,type,param);
-	
-	/*param[0].buffer_type = MYSQL_TYPE_STRING;
-	param[0].buffer = codiceTratta;
-	param[0].buffer_length = strlen(codiceTratta);
-	
-	param[1].buffer_type = MYSQL_TYPE_DATE;
-	param[1].buffer = dataPartenza;
-	param[1].buffer_length = sizeof(dataPartenza);
-	
-	param[2].buffer_type = MYSQL_TYPE_TIME;
-	param[2].buffer = orarioPartenza;
-	param[2].buffer_length = sizeof(orarioPartenza);
-	
-	param[3].buffer_type = MYSQL_TYPE_STRING;
-	param[3].buffer = veicoloAssociato;
-	param[3].buffer_length = strlen(veicoloAssociato);*/
-
 	
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
@@ -773,6 +718,8 @@ static void delete_realRoute(MYSQL *conn){
 	char codiceTratta[6];
 	MYSQL_TIME dataPartenza[1];
 	MYSQL_TIME orarioPartenza[1];
+	void *data[3];
+	enum_field_types type[3];
 
 	memset(dataPartenza, 0, sizeof(dataPartenza));
 	memset(orarioPartenza, 0, sizeof(orarioPartenza));
@@ -814,13 +761,10 @@ riprova2:
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize delete real route statements\n", false);
 	}
 
-	
-	void *data[3];
 	data[0]=(void*)codiceTratta;
 	data[1]=(void*)dataPartenza;
 	data[2]=(void*)orarioPartenza;
 	
-	enum_field_types type[3];
 	type[0]=MYSQL_TYPE_STRING;
 	type[1]=MYSQL_TYPE_DATE;
 	type[2]=MYSQL_TYPE_TIME;
@@ -849,6 +793,8 @@ static void add_waypoint(MYSQL* conn)
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[2];
 	char buff[20];
+	void *data[2];
+	enum_field_types type[2];
 
 	// Input for the registration routine
 	float latitudine;
@@ -868,11 +814,9 @@ static void add_waypoint(MYSQL* conn)
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize waypoint insertion statement\n", false);
 	}
 
-	void *data[2];
 	data[0]=(void*)&latitudine;
 	data[1]=(void*)&longitudine;
 	
-	enum_field_types type[2];
 	type[0]=MYSQL_TYPE_FLOAT;
 	type[1]=MYSQL_TYPE_FLOAT;
 
@@ -880,14 +824,6 @@ static void add_waypoint(MYSQL* conn)
 	memset(param, 0, sizeof(param));
 	
 	setup_mysql_bind(2,data,type,param);
-
-	/*param[0].buffer_type = MYSQL_TYPE_FLOAT;
-	param[0].buffer = &latitudine;
-	param[0].buffer_length = sizeof(latitudine);
-
-	param[1].buffer_type = MYSQL_TYPE_FLOAT;
-	param[1].buffer = &longitudine;
-	param[1].buffer_length = sizeof(longitudine);*/
 
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
@@ -910,6 +846,8 @@ static void delete_waypoint(MYSQL *conn){
 	MYSQL_STMT *prepared_stmt;
 	MYSQL_BIND param[2];
 	char buff[46];
+	void *data[2];
+	enum_field_types type[2];
 	
 	float latitudine;
 	float longitudine;
@@ -927,11 +865,9 @@ static void delete_waypoint(MYSQL *conn){
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize waypoint delete statement\n", false);
 	}
 
-	void *data[2];
 	data[0]=(void*)&latitudine;
 	data[1]=(void*)&longitudine;
 	
-	enum_field_types type[2];
 	type[0]=MYSQL_TYPE_FLOAT;
 	type[1]=MYSQL_TYPE_FLOAT;
 
@@ -960,6 +896,8 @@ static void add_waypointToARoute(MYSQL* conn)
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[4];
 	char buff[10];
+	void *data[4];
+	enum_field_types type[4];
 
 	// Input for the registration routine
 	char tratta[6];
@@ -985,13 +923,11 @@ static void add_waypointToARoute(MYSQL* conn)
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize waypoint insertion statement\n", false);
 	}
 
-	void *data[4];
 	data[0]=(void*)tratta;
 	data[1]=(void*)&latitudine;
 	data[2]=(void*)&longitudine;
 	data[3]=(void*)&numeroOrdine;
 	
-	enum_field_types type[4];
 	type[0]=MYSQL_TYPE_STRING;
 	type[1]=MYSQL_TYPE_FLOAT;
 	type[2]=MYSQL_TYPE_FLOAT;
@@ -1002,23 +938,6 @@ static void add_waypointToARoute(MYSQL* conn)
 	
 	setup_mysql_bind(4,data,type,param);
 	
-	
-	/*param[0].buffer_type = MYSQL_TYPE_STRING;
-	param[0].buffer = tratta;
-	param[0].buffer_length = strlen(tratta);
-
-	param[1].buffer_type = MYSQL_TYPE_FLOAT;
-	param[1].buffer = &latitudine;
-	param[1].buffer_length = sizeof(latitudine);
-
-	param[2].buffer_type = MYSQL_TYPE_FLOAT;
-	param[2].buffer = &longitudine;
-	param[2].buffer_length = sizeof(longitudine);
-	
-	param[3].buffer_type = MYSQL_TYPE_LONG;
-	param[3].buffer = &numeroOrdine;
-	param[3].buffer_length = sizeof(numeroOrdine);*/
-
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
 		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for waypoint to a route insertion\n", true);
@@ -1040,6 +959,8 @@ static void delete_waypointFromARoute(MYSQL *conn){
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[3];
 	char buff[10];
+	void *data[3];
+	enum_field_types type[3];
 
 	// Input for the registration routine
 	char tratta[6];
@@ -1062,13 +983,11 @@ static void delete_waypointFromARoute(MYSQL *conn){
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize waypoint delete from a route statement\n", false);
 	}
 
-	void *data[3];
 	data[0]=(void*)tratta;
 	data[1]=(void*)&latitudine;
 	data[2]=(void*)&longitudine;
 	
 	
-	enum_field_types type[3];
 	type[0]=MYSQL_TYPE_STRING;
 	type[1]=MYSQL_TYPE_FLOAT;
 	type[2]=MYSQL_TYPE_FLOAT;
@@ -1105,6 +1024,8 @@ static void create_user(MYSQL* conn)
 	char username[46];
 	char password[46];
 	char ruolo[46];
+	void *data[3];
+	enum_field_types type[3];
 
 	// Get the required information
 	printf("\nUsername: ");
@@ -1138,13 +1059,10 @@ static void create_user(MYSQL* conn)
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize user insertion statement\n", false);
 	}
 
-	void *data[3];
 	data[0]=(void*)username;
 	data[1]=(void*)password;
 	data[2]=(void*)ruolo;
 	
-	
-	enum_field_types type[3];
 	type[0]=MYSQL_TYPE_VAR_STRING;
 	type[1]=MYSQL_TYPE_VAR_STRING;
 	type[2]=MYSQL_TYPE_VAR_STRING;
@@ -1154,17 +1072,6 @@ static void create_user(MYSQL* conn)
 	
 	setup_mysql_bind(3,data,type,param);
 
-	/*param[0].buffer_type = MYSQL_TYPE_VAR_STRING;
-	param[0].buffer = username;
-	param[0].buffer_length = strlen(username);
-
-	param[1].buffer_type = MYSQL_TYPE_VAR_STRING;
-	param[1].buffer = password;
-	param[1].buffer_length = strlen(password);
-
-	param[2].buffer_type = MYSQL_TYPE_VAR_STRING;
-	param[2].buffer = ruolo;
-	param[2].buffer_length = strlen(ruolo);*/
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
 		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for user insertion\n", true);
@@ -1185,6 +1092,8 @@ static void delete_user(MYSQL *conn){
 	
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[3];
+	void *data[1];
+	enum_field_types type[1];
 	
 	char username[46];
 	
@@ -1198,10 +1107,8 @@ static void delete_user(MYSQL *conn){
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize user delete statement\n", false);
 	}
 
-	void *data[1];
 	data[0]=(void*)username;
 	
-	enum_field_types type[1];
 	type[0]=MYSQL_TYPE_VAR_STRING;
 
 	
@@ -1231,6 +1138,8 @@ static void add_newWorkShift(MYSQL *conn) {
 	char buff2[46];
 	char *token_vectorInizioTurno[6];
 	char *token_vectorFineTurno[6];
+	void *data[3];
+	enum_field_types type[3];
 		
 	char conducente_cf[17];
 	MYSQL_TIME inizioTurno[1];
@@ -1283,12 +1192,10 @@ riprova2:
 	}
 	
 	
-	void *data[3];
 	data[0]=(void*)conducente_cf;
 	data[1]=(void*)inizioTurno;
 	data[2]=(void*)fineTurno;
 	
-	enum_field_types type[3];
 	type[0]=MYSQL_TYPE_STRING;
 	type[1]=MYSQL_TYPE_DATETIME;
 	type[2]=MYSQL_TYPE_DATETIME;
@@ -1298,19 +1205,6 @@ riprova2:
 	
 	setup_mysql_bind(3,data,type,param);
 	
-	/*memset(param, 0, sizeof(param));
-	
-	param[0].buffer_type = MYSQL_TYPE_STRING;
-	param[0].buffer = conducente_cf;
-	param[0].buffer_length = strlen(conducente_cf);
-	
-	param[1].buffer_type = MYSQL_TYPE_DATETIME;
-	param[1].buffer = inizioTurno;
-	param[1].buffer_length = sizeof(inizioTurno);
-	
-	param[2].buffer_type = MYSQL_TYPE_DATETIME;
-	param[2].buffer = fineTurno;
-	param[2].buffer_length = sizeof(fineTurno);*/
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
 		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for work shift\n", true);
@@ -1334,6 +1228,8 @@ static void delete_workShift(MYSQL *conn) {
 	char buff2[46];
 	char *token_vectorInizioTurno[6];
 	char *token_vectorFineTurno[6];
+	void *data[3];
+	enum_field_types type[3];
 		
 	char conducente_cf[17];
 	MYSQL_TIME inizioTurno[1];
@@ -1385,12 +1281,10 @@ riprova1:
 	}
 	
 	
-	void *data[3];
 	data[0]=(void*)conducente_cf;
 	data[1]=(void*)inizioTurno;
 	data[2]=(void*)fineTurno;
 	
-	enum_field_types type[3];
 	type[0]=MYSQL_TYPE_STRING;
 	type[1]=MYSQL_TYPE_DATETIME;
 	type[2]=MYSQL_TYPE_DATETIME;
@@ -1400,17 +1294,6 @@ riprova1:
 	
 	setup_mysql_bind(3,data,type,param);
 
-	/*param[0].buffer_type = MYSQL_TYPE_STRING;
-	param[0].buffer = conducente_cf;
-	param[0].buffer_length = strlen(conducente_cf);
-	
-	param[1].buffer_type = MYSQL_TYPE_DATETIME;
-	param[1].buffer = inizioTurno;
-	param[1].buffer_length = sizeof(inizioTurno);
-	
-	param[2].buffer_type = MYSQL_TYPE_DATETIME;
-	param[2].buffer = fineTurno;
-	param[2].buffer_length = sizeof(fineTurno);*/
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
 		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for work shift elimination\n", true);
@@ -1427,12 +1310,6 @@ riprova1:
 	mysql_stmt_close(prepared_stmt);
 
 }
-//Ho inserito queste variabili globali affinchè le due funzioni successive possano eseguire sia singolarmente sia in successione. In quest'ultimo caso evito di reinserire parametri passati in precedenza. 
-char conducente_cf[17];
-char conducente_selezionato[17];
-MYSQL_TIME global_inizioTurno[1];
-MYSQL_TIME global_fineTurno[1];
-int setted=0;
 	
 	
 static void replace_workShift(MYSQL* conn){
@@ -1443,10 +1320,9 @@ static void replace_workShift(MYSQL* conn){
 	
 	char *token_vectorInizioTurno[6];
 	char *token_vectorFineTurno[6];
-	/*char conducente_cf[17];
-	char conducente_sostituto[17];
-	MYSQL_TIME inizioTurno[1];
-	MYSQL_TIME fineTurno[1];*/
+	
+	void *data[4];
+	enum_field_types type[4];
 		
 	if (setted ==1) goto Driver_Selected;
 	
@@ -1455,9 +1331,9 @@ static void replace_workShift(MYSQL* conn){
 	
 	
 	printf("\nInserisci il codice fiscale del conducente da sostituire: ");
-	getInput(17,conducente_cf,false);
+	getInput(17,global_conducente_cf,false);
 	printf("\nInserisci il codice fiscale del conducente sostituto (nuovo): ");
-	getInput(17, conducente_selezionato,false);		
+	getInput(17, global_conducente_selezionato,false);		
 	printf("\nInserisci il datetime di inizio del turno(yyyy-mm-hh hh-mm): ");
 riprova1:
 	getInput(46, buff1, false);
@@ -1498,13 +1374,11 @@ Driver_Selected:
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to replace driver statements\n", false);
 	}
 
-	void *data[4];
-	data[0]=(void*)conducente_selezionato;
-	data[1]=(void*)conducente_cf;
+	data[0]=(void*)global_conducente_selezionato;
+	data[1]=(void*)global_conducente_cf;
 	data[2]=(void*)global_inizioTurno;
 	data[3]=(void*)global_fineTurno;
 	
-	enum_field_types type[4];
 	type[0]=MYSQL_TYPE_STRING;
 	type[1]=MYSQL_TYPE_STRING;
 	type[2]=MYSQL_TYPE_DATETIME;
@@ -1514,22 +1388,6 @@ Driver_Selected:
 	memset(param, 0, sizeof(param));
 	
 	setup_mysql_bind(4,data,type,param);
-	
-	/*param[0].buffer_type = MYSQL_TYPE_STRING;
-	param[0].buffer = conducente_sostituto;
-	param[0].buffer_length = strlen(conducente_sostituto);
-	
-	param[1].buffer_type = MYSQL_TYPE_STRING;
-	param[1].buffer = conducente_cf;
-	param[1].buffer_length = strlen(conducente_cf);
-	
-	param[2].buffer_type = MYSQL_TYPE_DATETIME;
-	param[2].buffer = inizioTurno;
-	param[2].buffer_length = sizeof(inizioTurno);
-	
-	param[3].buffer_type = MYSQL_TYPE_DATETIME;
-	param[3].buffer = fineTurno;
-	param[3].buffer_length = sizeof(fineTurno);*/
 	
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
@@ -1558,16 +1416,14 @@ static void find_driver_shiftReplacement(MYSQL *conn) {
 	char buff2[46];
 	char *token_vectorInizioTurno[6];
 	char *token_vectorFineTurno[6];
+	void *data[3];
+	enum_field_types type[3];
 	
-	/*char conducente_cf[17];
-	MYSQL_TIME inizioTurno[1];
-	MYSQL_TIME fineTurno[1];*/
-		
 	memset(global_inizioTurno, 0, sizeof(global_inizioTurno));
 	memset(global_fineTurno, 0, sizeof(global_fineTurno));
 			
 	printf("\nInserisci il codice fiscale del conducente che si intende sostituire: ");
-	getInput(17,conducente_cf,false);
+	getInput(17,global_conducente_cf,false);
 	printf("\nInserisci il datetime corrispondente all' inizio del turno (yyyy-mm-hh hh-mm): ");
 riprova1:
 	getInput(46, buff1, false);
@@ -1579,11 +1435,6 @@ riprova1:
 		}
 	}
 	
-	global_inizioTurno->year = atoi(token_vectorInizioTurno[0]);
-	global_inizioTurno->month = atoi(token_vectorInizioTurno[1]);
-	global_inizioTurno->day = atoi(token_vectorInizioTurno[2]);
-	global_inizioTurno->hour = atoi(token_vectorInizioTurno[3]);
-	global_inizioTurno->minute = atoi(token_vectorInizioTurno[4]);
 	
 	printf("\nInserisci il datetime corrispondente alla fine del turno (yyyy-mm-hh hh-mm): ");
 riprova2:
@@ -1597,6 +1448,12 @@ riprova2:
 	}
 	
 	
+	global_inizioTurno->year = atoi(token_vectorInizioTurno[0]);
+	global_inizioTurno->month = atoi(token_vectorInizioTurno[1]);
+	global_inizioTurno->day = atoi(token_vectorInizioTurno[2]);
+	global_inizioTurno->hour = atoi(token_vectorInizioTurno[3]);
+	global_inizioTurno->minute = atoi(token_vectorInizioTurno[4]);
+	
 	global_fineTurno->year = atoi(token_vectorFineTurno[0]);
 	global_fineTurno->month = atoi(token_vectorFineTurno[1]);
 	global_fineTurno->day = atoi(token_vectorFineTurno[2]);
@@ -1609,12 +1466,10 @@ riprova2:
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to find drivers for replacement statements\n", false);
 	}
 
-	void *data[3];
-	data[0]=(void*)conducente_cf;
+	data[0]=(void*)global_conducente_cf;
 	data[1]=(void*)global_inizioTurno;
 	data[2]=(void*)global_fineTurno;
 	
-	enum_field_types type[3];
 	type[0]=MYSQL_TYPE_STRING;
 	type[1]=MYSQL_TYPE_DATETIME;
 	type[2]=MYSQL_TYPE_DATETIME;
@@ -1623,18 +1478,6 @@ riprova2:
 	memset(param, 0, sizeof(param));
 	
 	setup_mysql_bind(3,data,type,param);
-	
-	/*param[0].buffer_type = MYSQL_TYPE_STRING;
-	param[0].buffer = conducente_cf;
-	param[0].buffer_length = strlen(conducente_cf);
-	
-	param[1].buffer_type = MYSQL_TYPE_DATETIME;
-	param[1].buffer = inizioTurno;
-	param[1].buffer_length = sizeof(inizioTurno);
-	
-	param[2].buffer_type = MYSQL_TYPE_DATETIME;
-	param[2].buffer = fineTurno;
-	param[2].buffer_length = sizeof(fineTurno);*/
 	
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
@@ -1675,7 +1518,7 @@ riprova3:
 	
 	
 	printf("\n\nScegliere un conducente tra quelli individuati(codice fiscale): ");
-	getInput(17,conducente_selezionato,false);
+	getInput(17,global_conducente_selezionato,false);
 	setted=1;
 	replace_workShift(conn);
     out:
@@ -1693,6 +1536,8 @@ static void link_vehicleWithRealRoute(MYSQL* conn){
 	
 	char *token_vectorData[4];
 	char *token_vectorOrario[3];
+	void *data[4];
+	enum_field_types type[4];
 	
 	char codiceTratta[6];
 	MYSQL_TIME dataPartenza[1];
@@ -1701,10 +1546,6 @@ static void link_vehicleWithRealRoute(MYSQL* conn){
 	
 	memset(dataPartenza, 0, sizeof(dataPartenza));
 	memset(orarioPartenza, 0, sizeof(orarioPartenza));
-	
-	/*dataPartenza->time_type = MYSQL_TIMESTAMP_DATE;
-	orarioPartenza->time_type = MYSQL_TIMESTAMP_TIME;*/
-	
 	
 	printf("\nInserisci il codice di tratta (5 cifre): ");
 	getInput(6, codiceTratta, false);
@@ -1746,13 +1587,11 @@ riprova2:
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize real route insertion statement\n", false);
 	}
 
-	void *data[4];
 	data[0]=(void*)codiceTratta;
 	data[1]=(void*)veicoloAssociato;
 	data[2]=(void*)orarioPartenza;
 	data[3]=(void*)dataPartenza;
 	
-	enum_field_types type[4];
 	type[0]=MYSQL_TYPE_STRING;
 	type[1]=MYSQL_TYPE_STRING;
 	type[2]=MYSQL_TYPE_TIME;
@@ -1762,22 +1601,6 @@ riprova2:
 	memset(param, 0, sizeof(param));
 	
 	setup_mysql_bind(4,data,type,param);
-	
-	/*param[0].buffer_type = MYSQL_TYPE_STRING;
-	param[0].buffer = codiceTratta;
-	param[0].buffer_length = strlen(codiceTratta);
-	
-	param[1].buffer_type = MYSQL_TYPE_STRING;
-	param[1].buffer = veicoloAssociato;
-	param[1].buffer_length = strlen(veicoloAssociato);
-	
-	param[2].buffer_type = MYSQL_TYPE_TIME;
-	param[2].buffer = orarioPartenza;
-	param[2].buffer_length = sizeof(orarioPartenza);
-	
-	param[3].buffer_type = MYSQL_TYPE_DATE;
-	param[3].buffer = dataPartenza;
-	param[3].buffer_length = sizeof(dataPartenza);*/
 	
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
@@ -1800,15 +1623,15 @@ static void emissione_biglietto(MYSQL *conn) {
 	MYSQL_STMT *prepared_stmt;
 	MYSQL_BIND param[1];
 	int codiceBiglietto;
+	void *data[1];
+	enum_field_types type[1];
 	
 	if(!setup_prepared_stmt(&prepared_stmt, "call EmissioneBiglietto(?)", conn)) {
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize ticket issue statement\n", false);
 	}
 
-	void *data[1];
 	data[0]=(void*)&codiceBiglietto;
 	
-	enum_field_types type[1];
 	type[0]=MYSQL_TYPE_LONG;
 
 	
@@ -1816,9 +1639,6 @@ static void emissione_biglietto(MYSQL *conn) {
 	
 	setup_mysql_bind(1,data,type,param);
 
-	/*param[0].buffer_type = MYSQL_TYPE_LONG;
-	param[0].buffer = &codiceBiglietto;
-	param[0].buffer_length = sizeof(codiceBiglietto);*/
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
 		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for ticket issue\n", true);
@@ -1834,9 +1654,6 @@ static void emissione_biglietto(MYSQL *conn) {
 	
 	setup_mysql_bind(1,data,type,param);
 	
-	/*param[0].buffer_type = MYSQL_TYPE_LONG; // OUT
-	param[0].buffer = &codiceBiglietto;
-	param[0].buffer_length = sizeof(codiceBiglietto);*/
 	
 	if(mysql_stmt_bind_result(prepared_stmt, param)) {
 		finish_with_stmt_error(conn, prepared_stmt, "Could not retrieve output parameter", true);
@@ -1859,6 +1676,8 @@ static void eliminare_biglietto(MYSQL *conn){
 	MYSQL_BIND param[1];
 	char buff[46];
 	int codiceBiglietto;
+	void *data[1];
+	enum_field_types type[1];
 	
 	printf("\nInserisci il codice del biglietto che si intende eliminare(int): ");
 	getInput(46, buff, false);
@@ -1868,10 +1687,8 @@ static void eliminare_biglietto(MYSQL *conn){
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize ticket delete statement\n", false);
 	}
 
-	void *data[1];
 	data[0]=(void*)&codiceBiglietto;
 	
-	enum_field_types type[1];
 	type[0]=MYSQL_TYPE_LONG;
 
 	
@@ -1905,15 +1722,15 @@ static void emissione_abbonamento(MYSQL *conn) {
 	MYSQL_STMT *prepared_stmt;
 	MYSQL_BIND param[1];
 	int codiceAbbonamento;
+	void *data[1];
+	enum_field_types type[1];
 	
 	if(!setup_prepared_stmt(&prepared_stmt, "call EmissioneAbbonamento(?)", conn)) {
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize transport pass statement\n", false);
 	}
 
-	void *data[1];
 	data[0]=(void*)&codiceAbbonamento;
 	
-	enum_field_types type[1];
 	type[0]=MYSQL_TYPE_LONG;
 
 	
@@ -1921,9 +1738,6 @@ static void emissione_abbonamento(MYSQL *conn) {
 	
 	setup_mysql_bind(1,data,type,param);
 
-	/*param[0].buffer_type = MYSQL_TYPE_LONG;
-	param[0].buffer = &codiceAbbonamento;
-	param[0].buffer_length = sizeof(codiceAbbonamento);*/
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
 		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for transport pass\n", true);
@@ -1939,9 +1753,6 @@ static void emissione_abbonamento(MYSQL *conn) {
 	
 	setup_mysql_bind(1,data,type,param);
 	
-	/*param[0].buffer_type = MYSQL_TYPE_LONG; // OUT
-	param[0].buffer = &codiceAbbonamento;
-	param[0].buffer_length = sizeof(codiceAbbonamento);*/
 	
 	if(mysql_stmt_bind_result(prepared_stmt, param)) {
 		finish_with_stmt_error(conn, prepared_stmt, "Could not retrieve output parameter", true);
@@ -1964,6 +1775,8 @@ static void eliminare_abbonamento(MYSQL *conn){
 	MYSQL_BIND param[1];
 	char buff[46];
 	int codiceAbbonamento;
+	void *data[1];
+	enum_field_types type[1];
 	
 	printf("\nInserisci il codice dell'abbonamento che si intende eliminare(int): ");
 	getInput(46, buff, false);
@@ -1973,10 +1786,8 @@ static void eliminare_abbonamento(MYSQL *conn){
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize transport pass delete statement\n", false);
 	}
 
-	void *data[1];
 	data[0]=(void*)&codiceAbbonamento;
 	
-	enum_field_types type[1];
 	type[0]=MYSQL_TYPE_LONG;
 
 	
@@ -1984,9 +1795,6 @@ static void eliminare_abbonamento(MYSQL *conn){
 	
 	setup_mysql_bind(1,data,type,param);
 
-	/*param[0].buffer_type = MYSQL_TYPE_LONG;
-	param[0].buffer = &codiceAbbonamento;
-	param[0].buffer_length = sizeof(codiceAbbonamento);*/
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
 		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for deleting transport pass\n", true);
@@ -2007,6 +1815,8 @@ static void eliminare_abbonamento(MYSQL *conn){
 static void driver_healed (MYSQL *conn){
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[4];
+	void *data[1];
+	enum_field_types type[1];
 
 	char codiceFiscale[17];
 	
@@ -2017,10 +1827,8 @@ static void driver_healed (MYSQL *conn){
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize driver healed statements\n", false);
 	}
 
-	void *data[1];
 	data[0]=(void*)codiceFiscale;
-	
-	enum_field_types type[1];
+
 	type[0]=MYSQL_TYPE_STRING;
 	
 	
@@ -2028,10 +1836,6 @@ static void driver_healed (MYSQL *conn){
 	
 	setup_mysql_bind(1,data,type,param);
 	
-	/*param[0].buffer_type = MYSQL_TYPE_STRING;
-	param[0].buffer = codiceFiscale;
-	param[0].buffer_length = strlen(codiceFiscale);*/
-
 	
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
 		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for driver healed procedure\n", true);
@@ -2051,6 +1855,8 @@ out:
 static void link_driverWithVehicle (MYSQL *conn){
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[2];
+	void *data[2];
+	enum_field_types type[2];
 
 	char codiceFiscale[17];
 	char veicolo[5];
@@ -2064,11 +1870,9 @@ static void link_driverWithVehicle (MYSQL *conn){
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize driver linking statements\n", false);
 	}
 
-	void *data[2];
 	data[0]=(void*)codiceFiscale;
 	data[1]=(void*)veicolo;
 	
-	enum_field_types type[2];
 	type[0]=MYSQL_TYPE_STRING;
 	type[1]=MYSQL_TYPE_STRING;
 	
@@ -2076,14 +1880,6 @@ static void link_driverWithVehicle (MYSQL *conn){
 	memset(param, 0, sizeof(param));
 	
 	setup_mysql_bind(2,data,type,param);
-	
-	/*param[0].buffer_type = MYSQL_TYPE_STRING;
-	param[0].buffer = codiceFiscale;
-	param[0].buffer_length = strlen(codiceFiscale);
-	
-	param[1].buffer_type = MYSQL_TYPE_STRING;
-	param[1].buffer = veicolo;
-	param[1].buffer_length = strlen(veicolo);*/
 
 	
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
