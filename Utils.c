@@ -326,7 +326,7 @@ void dump_result_set(MYSQL* conn, MYSQL_STMT* stmt, char* title)
 					break;
 				case MYSQL_TYPE_TIME:
 					date=((MYSQL_TIME*)rs_bind[i].buffer);
-					printf(" %02d-%02d-%02d |",date->hour,date->minute,date->second);
+					printf(" %02d:%-*.02d |",date->hour,(int)fields[i].max_length-3,date->minute);
 					break;
 				case MYSQL_TYPE_STRING:
 					printf(" %-*s |", (int)fields[i].max_length, (char*)rs_bind[i].buffer);

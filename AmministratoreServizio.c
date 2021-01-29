@@ -1224,7 +1224,8 @@ static void delete_user(MYSQL *conn){
 static void add_newWorkShift(MYSQL *conn) {
 	MYSQL_STMT *prepared_stmt;
 	MYSQL_BIND param[3];
-	char buff[46];
+	char buff1[46];
+	char buff2[46];
 	char *token_vectorInizioTurno[6];
 	char *token_vectorFineTurno[6];
 		
@@ -1239,8 +1240,8 @@ static void add_newWorkShift(MYSQL *conn) {
 	getInput(17,conducente_cf,false);
 	printf("\nInserisci il datetime corrispondente all' inizio del turno (yyyy-mm-hh hh-mm): ");
 riprova1:
-	getInput(46, buff, false);
-	tokenizer(token_vectorInizioTurno,buff,2);
+	getInput(46, buff1, false);
+	tokenizer(token_vectorInizioTurno,buff1,2);
 	for (int i=0; i<5;i++){
 		if(token_vectorInizioTurno[i] == NULL){
 			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-hh hh-mm): ");
@@ -1250,8 +1251,8 @@ riprova1:
 	
 	printf("\nInserisci il datetime corrispondente alla fine del turno (yyyy-mm-hh hh-mm): ");
 riprova2:
-	getInput(46, buff, false);
-	tokenizer(token_vectorFineTurno,buff,2);
+	getInput(46, buff2, false);
+	tokenizer(token_vectorFineTurno,buff2,2);
 	for (int i=0; i<5;i++){
 		if(token_vectorFineTurno[i] == NULL){
 			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-hh hh-mm): ");
@@ -1423,7 +1424,129 @@ riprova1:
 	mysql_stmt_close(prepared_stmt);
 
 }
+//Ho inserito queste variabili globali affinchè le due funzioni successive possano eseguire sia singolarmente sia in successione. In quest'ultimo caso evito di reinserire parametri passati in precedenza. 
+char conducente_cf[17];
+char conducente_selezionato[17];
+MYSQL_TIME global_inizioTurno[1];
+MYSQL_TIME global_fineTurno[1];
+int setted=0;
+	
+	
+static void replace_workShift(MYSQL* conn){
+	MYSQL_STMT *prepared_stmt;
+	MYSQL_BIND param[4];
+	char buff1[46];
+	char buff2[46];
+	
+	char *token_vectorInizioTurno[6];
+	char *token_vectorFineTurno[6];
+	/*char conducente_cf[17];
+	char conducente_sostituto[17];
+	MYSQL_TIME inizioTurno[1];
+	MYSQL_TIME fineTurno[1];*/
 		
+	if (setted ==1) goto Driver_Selected;
+	
+	memset(global_inizioTurno, 0, sizeof(global_inizioTurno));
+	memset(global_fineTurno, 0, sizeof(global_fineTurno));
+	
+	
+	printf("\nInserisci il codice fiscale del conducente da sostituire: ");
+	getInput(17,conducente_cf,false);
+	printf("\nInserisci il codice fiscale del conducente sostituto (nuovo): ");
+	getInput(17, conducente_selezionato,false);		
+	printf("\nInserisci il datetime di inizio del turno(yyyy-mm-hh hh-mm): ");
+riprova1:
+	getInput(46, buff1, false);
+	tokenizer(token_vectorInizioTurno,buff1,2);
+	for (int i=0; i<5;i++){
+		if(token_vectorInizioTurno[i] == NULL){
+			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-hh hh-mm): ");
+	 		goto riprova1;
+		}
+	}
+	
+	global_inizioTurno->year = atoi(token_vectorInizioTurno[0]);
+	global_inizioTurno->month = atoi(token_vectorInizioTurno[1]);
+	global_inizioTurno->day = atoi(token_vectorInizioTurno[2]);
+	global_inizioTurno->hour = atoi(token_vectorInizioTurno[3]);
+	global_inizioTurno->minute = atoi(token_vectorInizioTurno[4]);
+	
+	printf("\nInserisci il datetime corrispondente alla fine del turno (yyyy-mm-hh hh-mm): ");
+riprova2:
+	getInput(46, buff2, false);
+	tokenizer(token_vectorFineTurno,buff2,2);
+	for (int i=0; i<5;i++){
+		if(token_vectorFineTurno[i] == NULL){
+			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-hh hh-mm): ");
+	 		goto riprova2;
+		}
+	}
+		
+	global_fineTurno->year = atoi(token_vectorFineTurno[0]);
+	global_fineTurno->month = atoi(token_vectorFineTurno[1]);
+	global_fineTurno->day = atoi(token_vectorFineTurno[2]);
+	global_fineTurno->hour = atoi(token_vectorFineTurno[3]);
+	global_fineTurno->minute = atoi(token_vectorFineTurno[4]);
+
+Driver_Selected:			
+	// Prepare stored procedure call
+	if(!setup_prepared_stmt(&prepared_stmt, "call SostituzioneTurno(?, ?, ?, ?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to replace driver statements\n", false);
+	}
+
+	void *data[4];
+	data[0]=(void*)conducente_selezionato;
+	data[1]=(void*)conducente_cf;
+	data[2]=(void*)global_inizioTurno;
+	data[3]=(void*)global_fineTurno;
+	
+	enum_field_types type[4];
+	type[0]=MYSQL_TYPE_STRING;
+	type[1]=MYSQL_TYPE_STRING;
+	type[2]=MYSQL_TYPE_DATETIME;
+	type[3]=MYSQL_TYPE_DATETIME;
+
+	
+	memset(param, 0, sizeof(param));
+	
+	setup_mysql_bind(4,data,type,param);
+	
+	/*param[0].buffer_type = MYSQL_TYPE_STRING;
+	param[0].buffer = conducente_sostituto;
+	param[0].buffer_length = strlen(conducente_sostituto);
+	
+	param[1].buffer_type = MYSQL_TYPE_STRING;
+	param[1].buffer = conducente_cf;
+	param[1].buffer_length = strlen(conducente_cf);
+	
+	param[2].buffer_type = MYSQL_TYPE_DATETIME;
+	param[2].buffer = inizioTurno;
+	param[2].buffer_length = sizeof(inizioTurno);
+	
+	param[3].buffer_type = MYSQL_TYPE_DATETIME;
+	param[3].buffer = fineTurno;
+	param[3].buffer_length = sizeof(fineTurno);*/
+	
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for replacing driver\n", true);
+	}
+
+	// Run procedure
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while retrieving the driver replacement.");
+		goto out;
+	}
+
+	printf("driver replacement procedure correctly done\n");
+
+    out:
+    	setted=0;
+	mysql_stmt_close(prepared_stmt);
+}	
+
+	
 static void find_driver_shiftReplacement(MYSQL *conn) {
 	MYSQL_STMT *prepared_stmt;
 	MYSQL_BIND param[3];
@@ -1433,12 +1556,12 @@ static void find_driver_shiftReplacement(MYSQL *conn) {
 	char *token_vectorInizioTurno[6];
 	char *token_vectorFineTurno[6];
 	
-	char conducente_cf[17];
+	/*char conducente_cf[17];
 	MYSQL_TIME inizioTurno[1];
-	MYSQL_TIME fineTurno[1];
+	MYSQL_TIME fineTurno[1];*/
 		
-	memset(inizioTurno, 0, sizeof(inizioTurno));
-	memset(fineTurno, 0, sizeof(fineTurno));
+	memset(global_inizioTurno, 0, sizeof(global_inizioTurno));
+	memset(global_fineTurno, 0, sizeof(global_fineTurno));
 			
 	printf("\nInserisci il codice fiscale del conducente che si intende sostituire: ");
 	getInput(17,conducente_cf,false);
@@ -1453,6 +1576,12 @@ riprova1:
 		}
 	}
 	
+	global_inizioTurno->year = atoi(token_vectorInizioTurno[0]);
+	global_inizioTurno->month = atoi(token_vectorInizioTurno[1]);
+	global_inizioTurno->day = atoi(token_vectorInizioTurno[2]);
+	global_inizioTurno->hour = atoi(token_vectorInizioTurno[3]);
+	global_inizioTurno->minute = atoi(token_vectorInizioTurno[4]);
+	
 	printf("\nInserisci il datetime corrispondente alla fine del turno (yyyy-mm-hh hh-mm): ");
 riprova2:
 	getInput(46, buff2, false);
@@ -1464,17 +1593,12 @@ riprova2:
 		}
 	}
 	
-	inizioTurno->year = atoi(token_vectorInizioTurno[0]);
-	inizioTurno->month = atoi(token_vectorInizioTurno[1]);
-	inizioTurno->day = atoi(token_vectorInizioTurno[2]);
-	inizioTurno->hour = atoi(token_vectorInizioTurno[3]);
-	inizioTurno->minute = atoi(token_vectorInizioTurno[4]);
 	
-	fineTurno->year = atoi(token_vectorFineTurno[0]);
-	fineTurno->month = atoi(token_vectorFineTurno[1]);
-	fineTurno->day = atoi(token_vectorFineTurno[2]);
-	fineTurno->hour = atoi(token_vectorFineTurno[3]);
-	fineTurno->minute = atoi(token_vectorFineTurno[4]);
+	global_fineTurno->year = atoi(token_vectorFineTurno[0]);
+	global_fineTurno->month = atoi(token_vectorFineTurno[1]);
+	global_fineTurno->day = atoi(token_vectorFineTurno[2]);
+	global_fineTurno->hour = atoi(token_vectorFineTurno[3]);
+	global_fineTurno->minute = atoi(token_vectorFineTurno[4]);
 		
 	
 	// Prepare stored procedure call
@@ -1484,8 +1608,8 @@ riprova2:
 
 	void *data[3];
 	data[0]=(void*)conducente_cf;
-	data[1]=(void*)inizioTurno;
-	data[2]=(void*)fineTurno;
+	data[1]=(void*)global_inizioTurno;
+	data[2]=(void*)global_fineTurno;
 	
 	enum_field_types type[3];
 	type[0]=MYSQL_TYPE_STRING;
@@ -1537,120 +1661,25 @@ riprova2:
 			finish_with_stmt_error(conn, prepared_stmt, "Unexpected condition", true);
 		
 	} while (status == 0);
+riprova3:
+	printf ("\nSi desidera scelgliere il conducente da sostituire?\nDigitare yes or no.\nDigitando yes si procederà alla sostituzione del turno.\nIl no porterà al termine della procedura. ");
+	getInput(4,buff1,false);
+	if(strcmp(buff1,"no")==0) goto out;
+	else if (strcmp(buff1,"yes") !=0){
+		printf("\nValori inseiriti non validi.\nReinserirli.");
+		goto riprova3;
+	}
 	
+	
+	printf("\n\nScegliere un conducente tra quelli individuati(codice fiscale): ");
+	getInput(17,conducente_selezionato,false);
+	setted=1;
+	replace_workShift(conn);
     out:
 	mysql_stmt_close(prepared_stmt);
+
 }
 
-static void replace_workShift(MYSQL* conn){
-	MYSQL_STMT *prepared_stmt;
-	MYSQL_BIND param[4];
-	char buff1[46];
-	char buff2[46];
-	char *token_vectorInizioTurno[6];
-	char *token_vectorFineTurno[6];
-	char conducente_cf[17];
-	char conducente_sostituto[17];
-	MYSQL_TIME inizioTurno[1];
-	MYSQL_TIME fineTurno[1];
-		
-		
-	memset(inizioTurno, 0, sizeof(inizioTurno));
-	memset(fineTurno, 0, sizeof(fineTurno));
-	
-	
-	printf("\nInserisci il codice fiscale del conducente da sostituire: ");
-	getInput(17,conducente_cf,false);
-	printf("\nInserisci il codice fiscale del conducente sostituto (nuovo): ");
-	getInput(17, conducente_sostituto,false);		
-	printf("\nInserisci il datetime di inizio del turno(yyyy-mm-hh hh-mm): ");
-riprova1:
-	getInput(46, buff1, false);
-	tokenizer(token_vectorInizioTurno,buff1,2);
-	for (int i=0; i<5;i++){
-		if(token_vectorInizioTurno[i] == NULL){
-			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-hh hh-mm): ");
-	 		goto riprova1;
-		}
-	}
-	
-	printf("\nInserisci il datetime corrispondente alla fine del turno (yyyy-mm-hh hh-mm): ");
-riprova2:
-	getInput(46, buff2, false);
-	tokenizer(token_vectorFineTurno,buff2,2);
-	for (int i=0; i<5;i++){
-		if(token_vectorFineTurno[i] == NULL){
-			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-hh hh-mm): ");
-	 		goto riprova2;
-		}
-	}
-	
-	inizioTurno->year = atoi(token_vectorInizioTurno[0]);
-	inizioTurno->month = atoi(token_vectorInizioTurno[1]);
-	inizioTurno->day = atoi(token_vectorInizioTurno[2]);
-	inizioTurno->hour = atoi(token_vectorInizioTurno[3]);
-	inizioTurno->minute = atoi(token_vectorInizioTurno[4]);
-	
-	fineTurno->year = atoi(token_vectorFineTurno[0]);
-	fineTurno->month = atoi(token_vectorFineTurno[1]);
-	fineTurno->day = atoi(token_vectorFineTurno[2]);
-	fineTurno->hour = atoi(token_vectorFineTurno[3]);
-	fineTurno->minute = atoi(token_vectorFineTurno[4]);
-			
-	// Prepare stored procedure call
-	if(!setup_prepared_stmt(&prepared_stmt, "call SostituzioneTurno(?, ?, ?, ?)", conn)) {
-		finish_with_stmt_error(conn, prepared_stmt, "Unable to replace driver statements\n", false);
-	}
-
-	void *data[4];
-	data[0]=(void*)conducente_sostituto;
-	data[1]=(void*)conducente_cf;
-	data[2]=(void*)inizioTurno;
-	data[3]=(void*)fineTurno;
-	
-	enum_field_types type[4];
-	type[0]=MYSQL_TYPE_STRING;
-	type[1]=MYSQL_TYPE_STRING;
-	type[2]=MYSQL_TYPE_DATETIME;
-	type[3]=MYSQL_TYPE_DATETIME;
-
-	
-	memset(param, 0, sizeof(param));
-	
-	setup_mysql_bind(4,data,type,param);
-	
-	/*param[0].buffer_type = MYSQL_TYPE_STRING;
-	param[0].buffer = conducente_sostituto;
-	param[0].buffer_length = strlen(conducente_sostituto);
-	
-	param[1].buffer_type = MYSQL_TYPE_STRING;
-	param[1].buffer = conducente_cf;
-	param[1].buffer_length = strlen(conducente_cf);
-	
-	param[2].buffer_type = MYSQL_TYPE_DATETIME;
-	param[2].buffer = inizioTurno;
-	param[2].buffer_length = sizeof(inizioTurno);
-	
-	param[3].buffer_type = MYSQL_TYPE_DATETIME;
-	param[3].buffer = fineTurno;
-	param[3].buffer_length = sizeof(fineTurno);*/
-	
-
-	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
-		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for replacing driver\n", true);
-	}
-
-	// Run procedure
-	if (mysql_stmt_execute(prepared_stmt) != 0) {
-		print_stmt_error(prepared_stmt, "An error occurred while retrieving the driver replacement.");
-		goto out;
-	}
-
-	printf("driver replacement procedure correctly done\n");
-
-    out:
-	mysql_stmt_close(prepared_stmt);
-}
 
 
 static void link_vehicleWithRealRoute(MYSQL* conn){
