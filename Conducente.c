@@ -83,7 +83,7 @@ static void look_for_waypoints(MYSQL *conn){
 		
 		
 	// Prepare stored procedure call
-	if(!setup_prepared_stmt(&prepared_stmt, "call Cerca_Waypoint_per_una_Tratta(?)", conn)) {
+	if(!setup_prepared_stmt(&prepared_stmt, "call Cerca_Waypoints_per_una_Tratta(?)", conn)) {
 		finish_with_stmt_error(conn, prepared_stmt, "Unable to setup look for waypoints statements\n", false);
 	}
 
