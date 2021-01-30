@@ -500,7 +500,7 @@ out:
 }
 
 
-static void emissione_biglietto(MYSQL *conn) {
+void emissione_biglietto(MYSQL *conn) {
 	MYSQL_STMT *prepared_stmt;
 	MYSQL_BIND param[1];
 	int codiceBiglietto;
@@ -551,7 +551,7 @@ static void emissione_biglietto(MYSQL *conn) {
 	mysql_stmt_close(prepared_stmt);
 }
 
-static void eliminare_biglietto(MYSQL *conn){
+ void eliminare_biglietto(MYSQL *conn){
 	
 	MYSQL_STMT *prepared_stmt;
 	MYSQL_BIND param[1];
@@ -577,9 +577,6 @@ static void eliminare_biglietto(MYSQL *conn){
 	
 	setup_mysql_bind(1,data,type,param);
 
-	/*param[0].buffer_type = MYSQL_TYPE_LONG;
-	param[0].buffer = &codiceBiglietto;
-	param[0].buffer_length = sizeof(codiceBiglietto);*/
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
 		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for deleting ticket\n", true);
@@ -600,7 +597,7 @@ static void eliminare_biglietto(MYSQL *conn){
 
 
 
-static void emissione_abbonamento(MYSQL *conn) {
+ void emissione_abbonamento(MYSQL *conn) {
 	MYSQL_STMT *prepared_stmt;
 	MYSQL_BIND param[1];
 	int codiceAbbonamento;
@@ -651,7 +648,7 @@ static void emissione_abbonamento(MYSQL *conn) {
 	mysql_stmt_close(prepared_stmt);
 }
 
-static void eliminare_abbonamento(MYSQL *conn){
+ void eliminare_abbonamento(MYSQL *conn){
 	
 	MYSQL_STMT *prepared_stmt;
 	MYSQL_BIND param[1];

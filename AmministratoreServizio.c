@@ -796,10 +796,10 @@ static void add_waypoint(MYSQL* conn)
 	// Get the required information
 	printf("\nInserisci latitudine: ");
 	getInput(20, buff, false);
-	latitudine = (float)atof(buff);
+	latitudine = strtof(buff,NULL);
 	printf("\nInserisci longitudine: ");
 	getInput(20, buff, false);
-	longitudine = (float)atof(buff);
+	longitudine = strtof(buff,NULL);
 
 	// Prepare stored procedure call
 	if (!setup_prepared_stmt(&prepared_stmt, "call Aggiungi_Waypoint(?, ?)", conn)) {
@@ -847,10 +847,10 @@ static void delete_waypoint(MYSQL *conn){
 	
 	printf("\nInserisci latitudine: ");
 	getInput(20, buff, false);
-	latitudine = (float)atof(buff);
+	latitudine = strtof(buff,NULL);
 	printf("\nInserisci longitudine: ");
 	getInput(20, buff, false);
-	longitudine = (float)atof(buff);
+	longitudine = strtof(buff,NULL);
 
 	// Prepare stored procedure call
 	if (!setup_prepared_stmt(&prepared_stmt, "call Elimina_Waypoint(?, ?)", conn)) {
@@ -902,10 +902,10 @@ static void add_waypointToARoute(MYSQL* conn)
 	getInput(6, tratta, false);
 	printf("\nInserisci latitudine: ");
 	getInput(10, buff, false);
-	latitudine = (float)atof(buff);
+	latitudine = strtof(buff,NULL);
 	printf("\nInserisci longitudine: ");
 	getInput(10, buff, false);
-	longitudine = (float)atof(buff);
+	longitudine = strtof(buff,NULL);
 	printf("\nInserisci il numero che rappresenta l'ordinamento del waypoint all'interno della tratta : ");
 	getInput(10, buff, false);
 	numeroOrdine=atoi(buff);
@@ -964,10 +964,10 @@ static void delete_waypointFromARoute(MYSQL *conn){
 	getInput(6, tratta, false);
 	printf("\nInserisci latitudine: ");
 	getInput(10, buff, false);
-	latitudine = (float)atof(buff);
+	latitudine = strtof(buff,NULL);
 	printf("\nInserisci longitudine: ");
 	getInput(10, buff, false);
-	longitudine = (float)atof(buff);
+	longitudine = strtof(buff,NULL);
 	
 
 	// Prepare stored procedure call
@@ -1126,7 +1126,7 @@ static void delete_user(MYSQL *conn){
 
 void run_as_administrator(MYSQL* conn)
 {
-	const char* options[21] = {"1", "2", "3", "4", "5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21"};
+	const char* options[25] = {"1", "2", "3", "4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25"};
 	int op;
 
 	printf("Switching to administrative role...\n");
@@ -1165,9 +1165,13 @@ void run_as_administrator(MYSQL* conn)
 		printf("18) Eliminare Utente\n");
 		printf("19) Cerca turni di un conducente\n");
 		printf("20) Cerca informazioni importanti di un conducente\n");
-		printf("21) Quit\n");
+		printf("21) Emettere biglietto\n");
+		printf("22) Eliminare biglietto\n");
+		printf("23) Emettere abbonamento\n");
+		printf("24) Eliminare abbonamento\n");
+		printf("25) Quit\n");
 
-		op = atoi(multiChoice("Select an option", options, 21));
+		op = atoi(multiChoice("Select an option", options, 25));
 
 		switch (op) {
 		case 1:
@@ -1230,7 +1234,20 @@ void run_as_administrator(MYSQL* conn)
 		case 20:
 			look_for_info_AboutADriver(conn);
 			break;
+			
 		case 21:
+			emissione_biglietto(conn);
+			break;
+		case 22:
+			eliminare_biglietto(conn);
+			break;
+		case 23:
+			emissione_abbonamento(conn);
+			break;
+		case 24:
+			eliminare_abbonamento(conn);
+			break;
+		case 25:
 			return;
 		default:
 			fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);

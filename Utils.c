@@ -71,13 +71,33 @@ static void print_dashes(MYSQL_RES* res_set)
 {
 	MYSQL_FIELD* field;
 	unsigned int i, j;
+	unsigned long col_len;
 
+	mysql_field_seek(res_set, 0);
+	
+	for (i = 0; i < mysql_num_fields(res_set); i++) {
+		field = mysql_fetch_field(res_set);
+		col_len = field->name_length;
+
+		if (col_len < field->max_length)
+			col_len = field->max_length;
+		if (col_len < 4 && !IS_NOT_NULL(field->flags))
+			col_len = 4; /* 4 = length of the word "NULL" */
+		else if (col_len >= field->max_length)
+			field->max_length = col_len; /* reset column info */
+	}
 	mysql_field_seek(res_set, 0);
 	putchar('+');
 	for (i = 0; i < mysql_num_fields(res_set); i++) {
 		field = mysql_fetch_field(res_set);
-		for (j = 0; j < field->max_length + 2; j++)
-			putchar('-');
+		if (field->type == MYSQL_TYPE_FLOAT){
+			for (j = 0; j < field->name_length + 2; j++)
+				putchar('-');
+		}
+		else{
+			for (j = 0; j < field->max_length + 2; j++)
+				putchar('-');
+		}
 		putchar('+');
 	}
 	putchar('\n');
@@ -96,13 +116,14 @@ static void dump_result_set_header(MYSQL_RES* res_set)
 
 	for (i = 0; i < mysql_num_fields(res_set); i++) {
 		field = mysql_fetch_field(res_set);
-		col_len = strlen(field->name);
+		col_len = field->name_length;
 
 		if (col_len < field->max_length)
 			col_len = field->max_length;
 		if (col_len < 4 && !IS_NOT_NULL(field->flags))
 			col_len = 4; /* 4 = length of the word "NULL" */
-		field->max_length = col_len; /* reset column info */
+		else if (col_len >= field->max_length)
+			field->max_length = col_len; /* reset column info */
 	}
 
 	print_dashes(res_set);
@@ -110,7 +131,12 @@ static void dump_result_set_header(MYSQL_RES* res_set)
 	mysql_field_seek(res_set, 0);
 	for (i = 0; i < mysql_num_fields(res_set); i++) {
 		field = mysql_fetch_field(res_set);
-		printf(" %-*s |", (int)field->max_length, field->name);
+		if (field->type == MYSQL_TYPE_FLOAT){
+			printf(" %-*s |", (int)field->name_length, field->name);
+		}
+		else{
+			printf(" %-*s |", (int)field->max_length, field->name);
+		}
 	}
 	putchar('\n');
 
@@ -318,15 +344,25 @@ void dump_result_set(MYSQL* conn, MYSQL_STMT* stmt, char* title)
 				switch (rs_bind[i].buffer_type) {
 
 				case MYSQL_TYPE_VAR_STRING:
-				case MYSQL_TYPE_DATETIME:
 					printf(" %-*s |", (int)fields[i].max_length, (char*)rs_bind[i].buffer);
 					break;
 
-				case MYSQL_TYPE_DATE:
-				case MYSQL_TYPE_TIMESTAMP:
+				case MYSQL_TYPE_DATETIME:
 					date = (MYSQL_TIME*)rs_bind[i].buffer;
+					printf(" %d-%02d-%02d %02d:%-*.02d |", date->year, date->month, date->day, date->hour,(int)fields[i].max_length-14,date->minute);
+					break;
+				case MYSQL_TYPE_DATE:
+					date = (MYSQL_TIME *)rs_bind[i].buffer;
+					if (fields[i].max_length > fields[i].name_length)
+						printf(" %d-%02d-%02d |", date->year, date->month, date->day);
+					else 
+						printf(" %d-%02d-%-*.02d |",date->year,date->month,(int)fields[i].name_length-8,date->day);
+					break;
+				case MYSQL_TYPE_TIMESTAMP:
+					date = (MYSQL_TIME *)rs_bind[i].buffer;
 					printf(" %d-%02d-%02d |", date->year, date->month, date->day);
 					break;
+				       
 				case MYSQL_TYPE_TIME:
 					date=((MYSQL_TIME*)rs_bind[i].buffer);
 					printf(" %02d:%-*.02d |",date->hour,(int)fields[i].max_length-3,date->minute);
@@ -335,9 +371,14 @@ void dump_result_set(MYSQL* conn, MYSQL_STMT* stmt, char* title)
 					printf(" %-*s |", (int)fields[i].max_length, (char*)rs_bind[i].buffer);
 					break;
 
-				case MYSQL_TYPE_FLOAT:
+				case MYSQL_TYPE_FLOAT: 
+				/*So bene che non funziona sempre, ma è necessario in quanto il tipo di dato float
+				è troppo grande, anche se in realtà dovrebbe prevalere in quanto campo piu' grande.*/
+					printf(" %-*f |", (int)fields[i].name_length, *(float*)rs_bind[i].buffer);
+					break;
+					
 				case MYSQL_TYPE_DOUBLE:
-					printf(" %.02f |", *(float*)rs_bind[i].buffer);
+					printf(" %02f |", *(float*)rs_bind[i].buffer);
 					break;
 
 				case MYSQL_TYPE_LONG:

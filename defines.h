@@ -35,5 +35,9 @@ extern void run_as_serviceManager(MYSQL* conn);
 
 extern void look_for_Driver_Shift(MYSQL *conn);
 extern void look_for_info_AboutADriver(MYSQL *conn);
+extern void emissione_biglietto(MYSQL *conn);
+extern void eliminare_biglietto(MYSQL *conn);
+extern void emissione_abbonamento(MYSQL *conn);
+extern void eliminare_abbonamento(MYSQL *conn);
 
 
