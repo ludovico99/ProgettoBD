@@ -39,5 +39,7 @@ extern void emissione_biglietto(MYSQL *conn);
 extern void eliminare_biglietto(MYSQL *conn);
 extern void emissione_abbonamento(MYSQL *conn);
 extern void eliminare_abbonamento(MYSQL *conn);
+extern void add_newWorkShift(MYSQL *conn);
+extern void delete_workShift(MYSQL *conn);
 
 

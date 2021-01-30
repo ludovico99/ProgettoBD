@@ -12,7 +12,7 @@ static MYSQL_TIME global_fineTurno[1];
 static int setted=0;
 
 
-static void add_newWorkShift(MYSQL *conn) {
+void add_newWorkShift(MYSQL *conn) {
 	MYSQL_STMT *prepared_stmt;
 	MYSQL_BIND param[3];
 	char buff1[46];
@@ -102,7 +102,7 @@ riprova2:
 	mysql_stmt_close(prepared_stmt);
 }
 
-static void delete_workShift(MYSQL *conn) {
+ void delete_workShift(MYSQL *conn) {
 	MYSQL_STMT *prepared_stmt;
 	MYSQL_BIND param[3];
 	char buff1[46];

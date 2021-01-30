@@ -1126,7 +1126,7 @@ static void delete_user(MYSQL *conn){
 
 void run_as_administrator(MYSQL* conn)
 {
-	const char* options[25] = {"1", "2", "3", "4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25"};
+	const char* options[27] = {"1", "2", "3", "4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27"};
 	int op;
 
 	printf("Switching to administrative role...\n");
@@ -1169,9 +1169,11 @@ void run_as_administrator(MYSQL* conn)
 		printf("22) Eliminare biglietto\n");
 		printf("23) Emettere abbonamento\n");
 		printf("24) Eliminare abbonamento\n");
-		printf("25) Quit\n");
+		printf("25) Aggiungere nuovo turno ad un conducente \n");
+		printf("26) Eliminare turno ad un conducente\n");
+		printf("27) Quit\n");
 
-		op = atoi(multiChoice("Select an option", options, 25));
+		op = atoi(multiChoice("Select an option", options, 27));
 
 		switch (op) {
 		case 1:
@@ -1248,6 +1250,12 @@ void run_as_administrator(MYSQL* conn)
 			eliminare_abbonamento(conn);
 			break;
 		case 25:
+			add_newWorkShift(conn);
+			break;
+		case 26:
+			delete_workShift(conn);
+			break;
+		case 27:
 			return;
 		default:
 			fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
