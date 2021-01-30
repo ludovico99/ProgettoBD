@@ -138,31 +138,12 @@ char* multiChoice(const char* domanda, const char* choices[], int num)
 		// Mostra la domanda
 		printf("%s [%s]: ", domanda, possib);
 
-		/*char c[3];
-		if (scanf_s("%2s",c,sizeof(c)) == NULL) {
-			printf("scanf_s error");
-			exit(-1);
-		};*/
-		char* c = (char*)malloc(10* sizeof(char));
-		if (fgets(c, 10, stdin)==NULL) {
-			printf("fgets error");
-			exit(-1);
-
-		}
-		// Controlla se è un carattere valido
+		char* c = (char*)malloc(3* sizeof(char));
+		getInput(3,c,false);
+		// Controlla se è una stringa valida
 		for (i = 0; i < num; i++) {
-			/*if (strcmp(c,choices[i])==0)
-			{
+			if(strcmp(c,choices[i])==0){
 				return c;
-			}*/
-			if (i >= 9)
-			{
-				if ((c[0] == choices[i][0]) && (c[1] == choices[i][1]))
-					return c;
-			}
-			else {
-				if (c[0] == choices[i][0])
-					return c;
 			}
 		}
 	}

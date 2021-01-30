@@ -1,0 +1,7 @@
+{
+	"host": "localhost",
+	"username": "GestoreServizio",
+	"password": "gestoreservizio",
+	"port": 3306,
+	"database": "progetto"
+}

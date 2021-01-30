@@ -11,6 +11,7 @@ typedef enum {
 	ADMINISTRATOR = 1,
 	DRIVER,
 	SYSTEM_USER,
+	SERVICE_MANAGER,
 	FAILED_LOGIN
 } role_t;
 
@@ -22,7 +23,8 @@ static MYSQL* conn;
 
 static role_t attempt_login(MYSQL* conn, char* username, char* password) {
 	MYSQL_STMT* login_procedure;
-
+	void *data[3];
+	enum_field_types type[3];
 	MYSQL_BIND param[3]; // Used both for input and output
 	int role = 0;
 
@@ -31,20 +33,19 @@ static role_t attempt_login(MYSQL* conn, char* username, char* password) {
 		goto err2;
 	}
 
-	// Prepare parameters
+	
+	data[0]=(void*)username;
+	data[1]=(void*)password;
+	data[2]=(void*)&role;
+	
+	type[0]=MYSQL_TYPE_VAR_STRING;
+	type[1]=MYSQL_TYPE_VAR_STRING;
+	type[2]=MYSQL_TYPE_LONG;
+	
 	memset(param, 0, sizeof(param));
+	
+	setup_mysql_bind(3,data,type,param);
 
-	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN
-	param[0].buffer = username;
-	param[0].buffer_length = strlen(username);
-
-	param[1].buffer_type = MYSQL_TYPE_VAR_STRING; // IN
-	param[1].buffer = password;
-	param[1].buffer_length = strlen(password);
-
-	param[2].buffer_type = MYSQL_TYPE_LONG; // OUT
-	param[2].buffer = &role;
-	param[2].buffer_length = sizeof(role);
 
 	if (mysql_stmt_bind_param(login_procedure, param) != 0) { // Note _param
 		print_stmt_error(login_procedure, "Could not bind parameters for login");
@@ -57,11 +58,15 @@ static role_t attempt_login(MYSQL* conn, char* username, char* password) {
 		goto err;
 	}
 
-	// Prepare output parameters
+	
+	data[0]=(void*)&role;
+	
+	type[0]=MYSQL_TYPE_LONG;
+	
 	memset(param, 0, sizeof(param));
-	param[0].buffer_type = MYSQL_TYPE_LONG; // OUT
-	param[0].buffer = &role;
-	param[0].buffer_length = sizeof(role);
+	
+	setup_mysql_bind(1,data,type,param);
+	
 
 	if (mysql_stmt_bind_result(login_procedure, param)) {
 		print_stmt_error(login_procedure, "Could not retrieve output parameter");
@@ -120,6 +125,10 @@ int main(void) {
 
 	case ADMINISTRATOR:
 		run_as_administrator(conn);
+		break;
+		
+	case SERVICE_MANAGER:
+		run_as_serviceManager(conn);
 		break;
 
 	case FAILED_LOGIN:

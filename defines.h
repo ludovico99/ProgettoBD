@@ -31,4 +31,9 @@ extern void dump_result_set(MYSQL *conn, MYSQL_STMT *stmt, char *title);
 extern void run_as_system_user(MYSQL *conn);
 extern void run_as_driver(MYSQL *conn);
 extern void run_as_administrator(MYSQL *conn);
+extern void run_as_serviceManager(MYSQL* conn);
+
+extern void look_for_Driver_Shift(MYSQL *conn);
+extern void look_for_info_AboutADriver(MYSQL *conn);
+
 
