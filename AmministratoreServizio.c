@@ -1122,11 +1122,71 @@ static void delete_user(MYSQL *conn){
     out:
 	mysql_stmt_close(prepared_stmt);
 }
+
+
+static void look_for_vehicleMaintenance(MYSQL *conn){
+
+	MYSQL_STMT *prepared_stmt;
+	MYSQL_BIND param[1];
+	int status;
+	char Matricola[5];
+	char header[64];
+	void *data[1];
+	enum_field_types type[1];
 	
+		
+	printf("\nInserisci la matricola del veicolo del quale si vuole conoscere le informazioni(4 cifre): ");
+	getInput(5,Matricola,false);
+		
+		
+	// Prepare stored procedure call
+	if(!setup_prepared_stmt(&prepared_stmt, "call Cerca_Manutenzioni_per_Veicolo(?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to setup look for info about vehicle maintenance statements\n", false);
+	}
+
+	// Prepare parameters
+	
+	data[0]=(void*)Matricola;
+	
+	type[0]=MYSQL_TYPE_STRING;
+	
+	memset(param, 0, sizeof(param));
+	
+	setup_mysql_bind(1,data,type,param);
+	
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for looking for info about vehicle maintenance\n", true);
+	}
+
+	// Run procedure
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while executing the look for info about vehicle maintenance procedure.");
+		goto out;
+	}
+
+	do {
+		if(conn->server_status & SERVER_PS_OUT_PARAMS) {
+			goto next;
+		}
+		
+		sprintf(header, "Informazioni relative alle manutenzioni del veicolo %s",Matricola);
+		dump_result_set(conn, prepared_stmt, header);
+		
+	    next:
+		status = mysql_stmt_next_result(prepared_stmt);
+		if (status > 0)
+			finish_with_stmt_error(conn, prepared_stmt, "Unexpected condition", true);
+		
+	} while (status == 0);
+
+    out:
+	mysql_stmt_close(prepared_stmt);
+}	
 
 void run_as_administrator(MYSQL* conn)
 {
-	const char* options[27] = {"1", "2", "3", "4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27"};
+	const char* options[28] = {"1", "2", "3", "4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28"};
 	int op;
 
 	printf("Switching to administrative role...\n");
@@ -1165,15 +1225,16 @@ void run_as_administrator(MYSQL* conn)
 		printf("18) Eliminare Utente\n");
 		printf("19) Cerca turni di un conducente\n");
 		printf("20) Cerca informazioni importanti di un conducente\n");
-		printf("21) Emettere biglietto\n");
-		printf("22) Eliminare biglietto\n");
-		printf("23) Emettere abbonamento\n");
-		printf("24) Eliminare abbonamento\n");
-		printf("25) Aggiungere nuovo turno ad un conducente \n");
-		printf("26) Eliminare turno ad un conducente\n");
-		printf("27) Quit\n");
+		printf("21) Cercare Manutenzioni per un veicolo\n");
+		printf("22) Emettere biglietto\n");
+		printf("23) Eliminare biglietto\n");
+		printf("24) Emettere abbonamento\n");
+		printf("25) Eliminare abbonamento\n");
+		printf("26) Aggiungere nuovo turno ad un conducente \n");
+		printf("27) Eliminare turno ad un conducente\n");
+		printf("28) Quit\n");
 
-		op = atoi(multiChoice("Select an option", options, 27));
+		op = atoi(multiChoice("Select an option", options, 28));
 
 		switch (op) {
 		case 1:
@@ -1236,26 +1297,28 @@ void run_as_administrator(MYSQL* conn)
 		case 20:
 			look_for_info_AboutADriver(conn);
 			break;
-			
 		case 21:
+			look_for_vehicleMaintenance(conn);
+			break;	
+		case 22:
 			emissione_biglietto(conn);
 			break;
-		case 22:
+		case 23:
 			eliminare_biglietto(conn);
 			break;
-		case 23:
+		case 24:
 			emissione_abbonamento(conn);
 			break;
-		case 24:
+		case 25:
 			eliminare_abbonamento(conn);
 			break;
-		case 25:
+		case 26:
 			add_newWorkShift(conn);
 			break;
-		case 26:
+		case 27:
 			delete_workShift(conn);
 			break;
-		case 27:
+		case 28:
 			return;
 		default:
 			fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);

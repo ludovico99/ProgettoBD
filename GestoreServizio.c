@@ -895,10 +895,86 @@ void look_for_info_AboutADriver(MYSQL *conn){
     out:
 	mysql_stmt_close(prepared_stmt);
 }
+	
+static void look_for_realRoute_in_a_Date(MYSQL *conn){
 
+	MYSQL_STMT *prepared_stmt;
+	MYSQL_BIND param[1];
+	int status;
+	char buff[46];
+	MYSQL_TIME dataPartenza[1];
+	char* token_vectorData[4];
+	char header[64];
+	void *data[1];
+	enum_field_types type[1];
+	
+	memset(dataPartenza, 0, sizeof(dataPartenza));
+		
+	printf("\nInserisci la data di partenza (yyyy-mm-hh): ");
+riprova1:
+	getInput(46, buff, false);
+	tokenizer(token_vectorData,buff,0);
+	for (int i=0; i<3;i++){
+		if(token_vectorData[i] == NULL){
+			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
+	 		goto riprova1;
+		}
+	}
+	
+	
+	dataPartenza->year = atoi (token_vectorData[0]);
+	dataPartenza->month = atoi (token_vectorData[1]);
+	dataPartenza->day = atoi (token_vectorData[2]);
+		
+		
+	// Prepare stored procedure call
+	if(!setup_prepared_stmt(&prepared_stmt, "call Cerca_TratteReali_in_una_data(?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to setup look for real routes in a date statements\n", false);
+	}
+
+	// Prepare parameters
+	
+	data[0]=(void*)dataPartenza;
+	
+	type[0]=MYSQL_TYPE_DATE;
+	
+	memset(param, 0, sizeof(param));
+	
+	setup_mysql_bind(1,data,type,param);
+	
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for looking for real routes in a date\n", true);
+	}
+
+	// Run procedure
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while executing the look for real routes in a date procedure.");
+		goto out;
+	}
+
+	do {
+		if(conn->server_status & SERVER_PS_OUT_PARAMS) {
+			goto next;
+		}
+		
+		sprintf(header, "Tratte reali in data %d-%d-%d",dataPartenza->year,dataPartenza->month,dataPartenza->day);
+		dump_result_set(conn, prepared_stmt, header);
+		
+	    next:
+		status = mysql_stmt_next_result(prepared_stmt);
+		if (status > 0)
+			finish_with_stmt_error(conn, prepared_stmt, "Unexpected condition", true);
+		
+	} while (status == 0);
+
+    out:
+	mysql_stmt_close(prepared_stmt);
+}		
+	
 void run_as_serviceManager(MYSQL* conn)
 {
-	const char* options[14] = {"1", "2", "3", "4", "5","6","7","8","9","10","11","12","13","14"};
+	const char* options[15] = {"1", "2", "3", "4", "5","6","7","8","9","10","11","12","13","14","15"};
 	int op;
 
 	printf("Switching to service manager role...\n");
@@ -930,9 +1006,10 @@ void run_as_serviceManager(MYSQL* conn)
 		printf("11) Associare un conducente ad un veicolo\n");
 		printf("12) Cerca turni di un conducente\n");
 		printf("13) Cerca informazioni importanti di un conducente\n");
-		printf("14) Quit\n");
+		printf("14) Cerca le tratte reali in una data\n");
+		printf("15) Quit\n");
 
-		op = atoi(multiChoice("Select an option", options, 14));
+		op = atoi(multiChoice("Select an option", options, 15));
 
 		switch (op) {
 		
@@ -976,6 +1053,9 @@ void run_as_serviceManager(MYSQL* conn)
 			look_for_info_AboutADriver(conn);
 			break;
 		case 14:
+			look_for_realRoute_in_a_Date(conn);
+			break;
+		case 15:
 			return;
 		default:
 			fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
