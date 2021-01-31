@@ -67,17 +67,18 @@ void finish_with_stmt_error(MYSQL* conn, MYSQL_STMT* stmt, const char* message, 
 	exit(EXIT_FAILURE);
 }
 
-static void print_dashes(MYSQL_RES* res_set)
-{
+
+
+static void compute_dim (MYSQL_RES* res_set){
 	MYSQL_FIELD* field;
-	unsigned int i, j;
+	unsigned int i;
 	unsigned long col_len;
 
 	mysql_field_seek(res_set, 0);
 	
 	for (i = 0; i < mysql_num_fields(res_set); i++) {
 		field = mysql_fetch_field(res_set);
-		col_len = field->name_length;
+		col_len = strlen(field->name);
 
 		if (col_len < field->max_length)
 			col_len = field->max_length;
@@ -86,6 +87,25 @@ static void print_dashes(MYSQL_RES* res_set)
 		else if (col_len >= field->max_length)
 			field->max_length = col_len; /* reset column info */
 	}
+
+}
+
+
+
+
+
+
+
+static void print_dashes(MYSQL_RES* res_set)
+{
+	MYSQL_FIELD* field;
+	unsigned int i, j;
+	unsigned long col_len;
+
+	mysql_field_seek(res_set, 0);
+	
+	compute_dim(res_set);
+	
 	mysql_field_seek(res_set, 0);
 	putchar('+');
 	for (i = 0; i < mysql_num_fields(res_set); i++) {
@@ -114,17 +134,7 @@ static void dump_result_set_header(MYSQL_RES* res_set)
 
 	mysql_field_seek(res_set, 0);
 
-	for (i = 0; i < mysql_num_fields(res_set); i++) {
-		field = mysql_fetch_field(res_set);
-		col_len = field->name_length;
-
-		if (col_len < field->max_length)
-			col_len = field->max_length;
-		if (col_len < 4 && !IS_NOT_NULL(field->flags))
-			col_len = 4; /* 4 = length of the word "NULL" */
-		else if (col_len >= field->max_length)
-			field->max_length = col_len; /* reset column info */
-	}
+	compute_dim(res_set);
 
 	print_dashes(res_set);
 	putchar('|');
@@ -335,7 +345,7 @@ void dump_result_set(MYSQL* conn, MYSQL_STMT* stmt, char* title)
 			putchar('|');
 
 			for (i = 0; i < num_fields; i++) {
-
+				compute_dim (rs_metadata);
 				if (rs_bind[i].is_null_value) {
 					printf(" %-*s |", (int)fields[i].max_length, "NULL");
 					continue;
@@ -373,7 +383,7 @@ void dump_result_set(MYSQL* conn, MYSQL_STMT* stmt, char* title)
 
 				case MYSQL_TYPE_FLOAT: 
 				/*So bene che non funziona sempre, ma è necessario in quanto il tipo di dato float
-				è troppo grande, anche se in realtà dovrebbe prevalere in quanto campo piu' grande.*/
+				è troppo grande, anche se in realtà dovrebbe prevalere la dimensione del tipo di dato in quanto campo piu' grande.*/
 					printf(" %-*f |", (int)fields[i].name_length, *(float*)rs_bind[i].buffer);
 					break;
 					
