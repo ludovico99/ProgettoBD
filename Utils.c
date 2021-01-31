@@ -100,7 +100,7 @@ static void print_dashes(MYSQL_RES* res_set)
 {
 	MYSQL_FIELD* field;
 	unsigned int i, j;
-	unsigned long col_len;
+	
 
 	mysql_field_seek(res_set, 0);
 	
@@ -126,7 +126,6 @@ static void print_dashes(MYSQL_RES* res_set)
 static void dump_result_set_header(MYSQL_RES* res_set)
 {
 	MYSQL_FIELD* field;
-	unsigned long col_len;
 	unsigned int i;
 
 	/* determine column display widths -- requires result set to be */
