@@ -32,11 +32,14 @@ BEGIN
         from  `TrattaReale` ;
 		
         
-		select `TrattaStradale`,  min(`Datetime`)
+		select `TrattaStradale`,  `Datetime`
 		from  `Tratte_Datetime` 
 		where `Veicolo Pubblico`= var_matricola and `Datetime` >= now()
-		group by `TrattaStradale`
-		having  min(`Datetime`) into var_TrattaStradale, var_ProssimaPartenza_Datetime;
+		and `Datetime` <= all (select  `Datetime`
+								from  `Tratte_Datetime`
+                                where `Veicolo Pubblico`= var_matricola
+								and `Datetime` >= now()) 
+                                into var_TrattaStradale, var_ProssimaPartenza_Datetime;
 		
 			
         
