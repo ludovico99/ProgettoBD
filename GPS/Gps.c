@@ -19,7 +19,7 @@ float longitudine;
 
 
 
-void add_lat_long (int signo){
+static void add_lat_long (int signo){
 	
 	latitudine = 100 + rand()%100 + 0.1*(rand()%10);
 	longitudine = 100 + rand()%100 + 0.1*(rand()%10);
