@@ -31,24 +31,24 @@ void add_newWorkShift(MYSQL *conn) {
 	
 	printf("\nInserisci il codice fiscale del conducente: ");
 	getInput(17,conducente_cf,false);
-	printf("\nInserisci il datetime corrispondente all' inizio del turno (yyyy-mm-hh hh-mm): ");
+	printf("\nInserisci il datetime corrispondente all' inizio del turno (yyyy-mm-dd hh:mm): ");
 riprova1:
 	getInput(46, buff1, false);
 	tokenizer(token_vectorInizioTurno,buff1,2);
 	for (int i=0; i<5;i++){
 		if(token_vectorInizioTurno[i] == NULL){
-			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-hh hh-mm): ");
+			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-dd hh:mm): ");
 	 		goto riprova1;
 		}
 	}
 	
-	printf("\nInserisci il datetime corrispondente alla fine del turno (yyyy-mm-hh hh-mm): ");
+	printf("\nInserisci il datetime corrispondente alla fine del turno (yyyy-mm-dd hh:mm): ");
 riprova2:
 	getInput(46, buff2, false);
 	tokenizer(token_vectorFineTurno,buff2,2);
 	for (int i=0; i<5;i++){
 		if(token_vectorFineTurno[i] == NULL){
-			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-hh hh-mm): ");
+			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-dd hh:mm): ");
 	 		goto riprova2;
 		}
 	}
@@ -122,24 +122,24 @@ riprova2:
 	
 	printf("\nInserisci il codice fiscale del conducente: ");
 	getInput(17,conducente_cf,false);
-	printf("\nInserisci il datetime corrispondente all' inizio del turno (yyyy-mm-hh hh-mm): ");
+	printf("\nInserisci il datetime corrispondente all' inizio del turno (yyyy-mm-dd hh:mm): ");
 riprova1:
 	getInput(46, buff1, false);
 	tokenizer(token_vectorInizioTurno,buff1,2);
 	for (int i=0; i<5;i++){
 		if(token_vectorInizioTurno[i] == NULL){
-			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-hh hh-mm): ");
+			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-dd hh:mm): ");
 	 		goto riprova1;
 		}
 	}
 	
-	printf("\nInserisci il datetime corrispondente alla fine del turno (yyyy-mm-hh hh-mm): ");
+	printf("\nInserisci il datetime corrispondente alla fine del turno (yyyy-mm-dd hh:mm): ");
 	riprova2:
 	getInput(46, buff2, false);
 	tokenizer(token_vectorFineTurno,buff2,2);
 	for (int i=0; i<5;i++){
 		if(token_vectorFineTurno[i] == NULL){
-			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-hh hh-mm): ");
+			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-dd hh:mm): ");
 	 		goto riprova2;
 		}
 	}
@@ -211,17 +211,17 @@ static void replace_workShift(MYSQL* conn){
 	memset(global_fineTurno, 0, sizeof(global_fineTurno));
 	
 	
-	printf("\nInserisci il codice fiscale del conducente da sostituire: ");
+	printf("\nInserisci il codice fiscale del conducente da sostituire (16 caratteri): ");
 	getInput(17,global_conducente_cf,false);
 	printf("\nInserisci il codice fiscale del conducente sostituto (nuovo): ");
 	getInput(17, global_conducente_selezionato,false);		
-	printf("\nInserisci il datetime di inizio del turno(yyyy-mm-hh hh-mm): ");
+	printf("\nInserisci il datetime di inizio del turno(yyyy-mm-dd hh:mm): ");
 riprova1:
 	getInput(46, buff1, false);
 	tokenizer(token_vectorInizioTurno,buff1,2);
 	for (int i=0; i<5;i++){
 		if(token_vectorInizioTurno[i] == NULL){
-			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-hh hh-mm): ");
+			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-dd hh:mm): ");
 	 		goto riprova1;
 		}
 	}
@@ -232,13 +232,13 @@ riprova1:
 	global_inizioTurno->hour = atoi(token_vectorInizioTurno[3]);
 	global_inizioTurno->minute = atoi(token_vectorInizioTurno[4]);
 	
-	printf("\nInserisci il datetime corrispondente alla fine del turno (yyyy-mm-hh hh-mm): ");
+	printf("\nInserisci il datetime corrispondente alla fine del turno (yyyy-mm-dd hh:mm): ");
 riprova2:
 	getInput(46, buff2, false);
 	tokenizer(token_vectorFineTurno,buff2,2);
 	for (int i=0; i<5;i++){
 		if(token_vectorFineTurno[i] == NULL){
-			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-hh hh-mm): ");
+			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-dd hh:mm): ");
 	 		goto riprova2;
 		}
 	}
@@ -305,25 +305,25 @@ static void find_driver_shiftReplacement(MYSQL *conn) {
 			
 	printf("\nInserisci il codice fiscale del conducente che si intende sostituire: ");
 	getInput(17,global_conducente_cf,false);
-	printf("\nInserisci il datetime corrispondente all' inizio del turno (yyyy-mm-hh hh-mm): ");
+	printf("\nInserisci il datetime corrispondente all' inizio del turno (yyyy-mm-dd hh:mm): ");
 riprova1:
 	getInput(46, buff1, false);
 	tokenizer(token_vectorInizioTurno,buff1,2);
 	for (int i=0; i<5;i++){
 		if(token_vectorInizioTurno[i] == NULL){
-			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-hh hh-mm): ");
+			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-dd hh:mm): ");
 	 		goto riprova1;
 		}
 	}
 	
 	
-	printf("\nInserisci il datetime corrispondente alla fine del turno (yyyy-mm-hh hh-mm): ");
+	printf("\nInserisci il datetime corrispondente alla fine del turno (yyyy-mm-dd hh:mm): ");
 riprova2:
 	getInput(46, buff2, false);
 	tokenizer(token_vectorFineTurno,buff2,2);
 	for (int i=0; i<5;i++){
 		if(token_vectorFineTurno[i] == NULL){
-			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-hh hh-mm): ");
+			printf ("Datetime inserito non corretto. Reinserirlo (yyyy-mm-dd hh:mm): ");
 	 		goto riprova2;
 		}
 	}
@@ -389,7 +389,7 @@ riprova2:
 		
 	} while (status == 0);
 riprova3:
-	printf ("\nSi desidera scelgliere il conducente da sostituire?\nDigitare yes or no.\nDigitando yes si procederà alla sostituzione del turno.\nIl no porterà al termine della procedura. ");
+	printf ("\nSi desidera scegliere il conducente da sostituire?\nDigitare yes or no.\nDigitando yes si procederà alla sostituzione del turno.\nIl no porterà al termine della procedura. ");
 	getInput(4,buff1,false);
 	if(strcmp(buff1,"no")==0) goto out;
 	else if (strcmp(buff1,"yes") !=0){
@@ -430,13 +430,13 @@ static void link_vehicleWithRealRoute(MYSQL* conn){
 	
 	printf("\nInserisci il codice di tratta (5 cifre): ");
 	getInput(6, codiceTratta, false);
-	printf("\nInserisci la data di partenza (yyyy-mm-hh): ");
+	printf("\nInserisci la data di partenza (yyyy-mm-dd): ");
 riprova1:
 	getInput(46, buff1, false);
 	tokenizer(token_vectorData,buff1,0);
 	for (int i=0; i<3;i++){
 		if(token_vectorData[i] == NULL){
-			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
+			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-dd): ");
 	 		goto riprova1;
 		}
 	}
@@ -447,7 +447,7 @@ riprova2:
 	tokenizer(token_vectorOrario,buff2,1);
 	for (int i=0; i<2;i++){
 		if(token_vectorOrario[i] == NULL){
-			printf ("Orario inserito non corretto. Reinserirlo (hh-mm): ");
+			printf ("Orario inserito non corretto. Reinserirlo (hh:mm): ");
 	 		goto riprova2;
 		}
 	}
@@ -910,13 +910,13 @@ static void look_for_realRoute_in_a_Date(MYSQL *conn){
 	
 	memset(dataPartenza, 0, sizeof(dataPartenza));
 		
-	printf("\nInserisci la data di partenza (yyyy-mm-hh): ");
+	printf("\nInserisci la data di partenza (yyyy-mm-dd): ");
 riprova1:
 	getInput(46, buff, false);
 	tokenizer(token_vectorData,buff,0);
 	for (int i=0; i<3;i++){
 		if(token_vectorData[i] == NULL){
-			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
+			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-dd): ");
 	 		goto riprova1;
 		}
 	}

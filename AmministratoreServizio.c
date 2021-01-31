@@ -23,13 +23,13 @@ static void add_vehicle(MYSQL* conn){
 	
 	printf("\nInserisci la matricola del veicolo (4 cifre): ");
 	getInput(5, veicolo, false);
-	printf("\nInserisci la data di acquisto del veicolo(yyyy-mm-hh): ");
+	printf("\nInserisci la data di acquisto del veicolo (yyyy-mm-dd): ");
 riprova:
 	getInput(46, buff, false);
 	tokenizer(token_vector,buff,0);
 	for (int i=0; i<3;i++){
 		if(token_vector[i] == NULL){
-			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
+			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-dd): ");
 	 		goto riprova;
 		}
 	}	
@@ -147,14 +147,14 @@ static void add_driver(MYSQL* conn)
 	getInput(46, nome, false);
 	printf("\nInserisci cognome: ");
 	getInput(46, cognome, false);
-	printf("\nInserisci la data di nascita(yyyy-mm-hh): ");
+	printf("\nInserisci la data di nascita (yyyy-mm-dd): ");
 riprova1:
 	getInput(46, buff1, false);
 	tokenizer(token_vector_dataNascita, buff1,0);
 	
 	for (int i=0; i<3;i++){
 		if(token_vector_dataNascita[i] == NULL){
-			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
+			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-dd): ");
 	 		goto riprova1;
 		}
 	}	
@@ -162,13 +162,13 @@ riprova1:
 	getInput(46, luogo_nascita, false);
 	printf("\nInserisci numero patente(10 caratteri): ");
 	getInput(11, numero_patente, false);
-	printf("\nInserisci la data di scadenza della patente(yyyy-mm-hh): ");
+	printf("\nInserisci la data di scadenza della patente (yyyy-mm-dd): ");
 riprova2:
 	getInput(46, buff2, false);
 	tokenizer(token_vector_scadenzaPatente, buff2,0);
 	for (int i=0; i<3;i++){
 		if(token_vector_scadenzaPatente[i] == NULL){
-			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
+			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-dd): ");
 	 		goto riprova2;
 		}
 	}
@@ -400,14 +400,14 @@ static void add_vehicleMaintenance(MYSQL* conn){
 	
 	printf("\nInserisci la matricola del veicolo (4 cifre): ");
 	getInput(5, veicolo, false);
-	printf("\nInserisci la data in cui è avvenuta la manutenzione(yyyy-mm-hh): ");
+	printf("\nInserisci la data in cui è avvenuta la manutenzione (yyyy-mm-dd): ");
 	
 	riprova:
 	getInput(46, buff, false);
 	tokenizer(token_vector,buff,0);
 	for (int i=0; i<3;i++){
 		if(token_vector[i] == NULL){
-			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
+			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-dd): ");
 	 		goto riprova;
 		}
 	}	
@@ -481,7 +481,7 @@ static void delete_vehicleMaintenance(MYSQL *conn){
 	tokenizer(token_vector,buff,0);
 	for (int i=0; i<3;i++){
 		if(token_vector[i] == NULL){
-			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
+			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-dd): ");
 	 		goto riprova;
 		}
 	}	
@@ -580,7 +580,7 @@ static void delete_route(MYSQL *conn){
 	enum_field_types type[1];
 
 
-	printf("\nInserisci il codice della tratta che si intende eliminare(5 cifre): ");
+	printf("\nInserisci il codice della tratta che si intende eliminare (5 cifre): ");
 	getInput(6, tratta, false);
 	
 		
@@ -632,13 +632,13 @@ static void add_realRoute(MYSQL* conn){
 	
 	printf("\nInserisci il codice di tratta (5 cifre): ");
 	getInput(6, codiceTratta, false);
-	printf("\nInserisci la data di partenza (yyyy-mm-hh): ");
+	printf("\nInserisci la data di partenza (yyyy-mm-dd): ");
 riprova1:
 	getInput(46, buff1, false);
 	tokenizer(token_vectorData,buff1,0);
 	for (int i=0; i<3;i++){
 		if(token_vectorData[i] == NULL){
-			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
+			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-dd): ");
 	 		goto riprova1;
 		}
 	}
@@ -719,13 +719,13 @@ static void delete_realRoute(MYSQL *conn){
 	printf("\nInserisci il codice della tratta che si intende eliminare(5 cifre): ");
 	getInput(6, codiceTratta, false);
 	
-	printf("\nInserisci la data di partenza (yyyy-mm-hh): ");
+	printf("\nInserisci la data di partenza (yyyy-mm-dd): ");
 riprova1:
 	getInput(46, buff, false);
 	tokenizer(token_vectorData,buff,0);
 	for (int i=0; i<3;i++){
 		if(token_vectorData[i] == NULL){
-			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-hh): ");
+			printf ("Data inserita non corretta. Reinserirla (yyyy-mm-dd): ");
 	 		goto riprova1;
 		}
 	}

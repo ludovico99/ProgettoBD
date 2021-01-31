@@ -404,7 +404,7 @@ static size_t load_file(char *filename)
 	return fsize;
 }
 
-int parse_config(const char *path, struct configuration *conf)
+int parse_config(char *path, struct configuration *conf)
 {
 	int i;
 	int r;

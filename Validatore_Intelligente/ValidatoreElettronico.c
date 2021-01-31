@@ -19,7 +19,9 @@ int codice;
 
 #define timeout 5 
 
-void transportPass_used(int signo){
+static void transportPass_used(int signo){
+	void *data[2];
+	enum_field_types type[2];
 	codice = rand()%10000+1;
 	
 	if (!setup_prepared_stmt(&stmt, "call Abbonamento_Utilizzato(?, ?)", conn)) {
@@ -27,25 +29,14 @@ void transportPass_used(int signo){
 		exit(-1);
 		}
 		
-		
-	void *data[2];
 	data[0]=(void*)&codice;
 	data[1]=(void*)veicolo;
 	
-	enum_field_types type[2];
 	type[0]=MYSQL_TYPE_LONG;
 	type[1]=MYSQL_TYPE_STRING;
 	
 	setup_mysql_bind(2,data,type,param);
-		
-	/*param[0].buffer_type = MYSQL_TYPE_LONG; 
-	param[0].buffer = &codice;
-	param[0].buffer_length = sizeof(codice);
-
-	param[1].buffer_type = MYSQL_TYPE_STRING; 
-	param[1].buffer = veicolo;
-	param[1].buffer_length = strlen(veicolo);*/
-
+	
 
 	if (mysql_stmt_bind_param(stmt, param) != 0) { 
 		print_stmt_error(stmt, "Could not bind parameters for transport pass");
@@ -67,8 +58,9 @@ void transportPass_used(int signo){
 
 
 
-void ticket_used (int signo){
-	
+static void ticket_used (int signo){
+	void *data[2];
+	enum_field_types type[2];
 	codice = rand()%10000+1;
 	
 	if (!setup_prepared_stmt(&stmt, "call Biglietto_Utilizzato(?, ?)", conn)) {
@@ -76,12 +68,9 @@ void ticket_used (int signo){
 		exit(-1);
 		}
 		
-		
-	void *data[2];
 	data[0]=(void*)&codice;
 	data[1]=(void*)veicolo;
 	
-	enum_field_types type[2];
 	type[0]=MYSQL_TYPE_LONG;
 	type[1]=MYSQL_TYPE_STRING;
 
@@ -90,14 +79,6 @@ void ticket_used (int signo){
 	
 	setup_mysql_bind(2,data,type,param);
 		
-	/*param[0].buffer_type = MYSQL_TYPE_LONG; 
-	param[0].buffer = &codice;
-	param[0].buffer_length = sizeof(codice);
-
-	param[1].buffer_type = MYSQL_TYPE_STRING; 
-	param[1].buffer = veicolo;
-	param[1].buffer_length = strlen(veicolo);*/
-
 
 	if (mysql_stmt_bind_param(stmt, param) != 0) { 
 		print_stmt_error(stmt, "Could not bind parameters for ticket_used");
