@@ -315,7 +315,7 @@ declare exit handler for sqlexception
         resignal;  -- raise again the sql exception to the caller
     end;
 
-set transaction isolation level serializable;
+set transaction isolation level read committed;
 start transaction;
 set counter=0;
 
@@ -376,7 +376,7 @@ BEGIN
         
 	select count(*) from `TurniLavorativi`  where `Conducente_CF`= var_Conducente and `InizioTurno`= var_inizioTurno and `FineTurno` = var_fineTurno into counter;
 	if counter = 0 then
-			signal sqlstate '45027' set message_text = "Non esiste l'orario indicato";
+			signal sqlstate '45017' set message_text = "Non esiste l'orario indicato";
 	end if;
 	Delete from `TurniLavorativi`  where `Conducente_CF`= var_Conducente and `InizioTurno`= var_inizioTurno and `FineTurno` = var_fineTurno;
 	commit;
@@ -515,7 +515,7 @@ BEGIN
 			
         
         if var_TrattaStradale is null then
-			signal sqlstate '45002' set message_text='Non esiste una partenza prevista per quel veicolo';
+			signal sqlstate '45024' set message_text='Non esiste una partenza prevista per quel veicolo';
 		end if;
         
         set var_ProssimaPartenza_Data = date(var_ProssimaPartenza_Datetime);
@@ -556,7 +556,7 @@ set transaction isolation level read committed;
   
     select count(*) from `BigliettoElettronico`  where `CodiceBigliettoEmesso`= var_codice into counter;
 	if counter = 0 then
-			signal sqlstate '45001' set message_text='Il Biglietto inserito non è valido';
+			signal sqlstate '45003' set message_text='Il Biglietto inserito non è valido';
 	end if;
     
 	update `BigliettoElettronico` set `Utilizzato`=b'1', `VeicoloPubblico_Matricola`=var_VeicoloValidante 
@@ -623,7 +623,7 @@ BEGIN
         
 	select count(*) from `Conducente` where `CF` = var_Conducente into counter;
 	if counter = 0 then
-			signal sqlstate '45031' set message_text = "Non esiste il conducente inserito";
+			signal sqlstate '45010' set message_text = "Non esiste il conducente inserito";
 	end if;
 	update `Conducente` set `InMalattia` = b'0'
 	where `CF` = var_Conducente ;
@@ -643,11 +643,10 @@ DELIMITER $$
 USE `progetto`$$
 CREATE PROCEDURE `Cerca_ConducentiValidiperLaSostituzione` (in var_Conducente char(16), in var_InizioTurno datetime, in var_FineTurno datetime)
 BEGIN	
-declare var_Esiste char(16);
-declare done int;
-declare count int;
-declare cur cursor for select `Conducente_CF` from `TurniLavorativi` where `Conducente_CF`= var_Conducente and `InizioTurno`=var_InizioTurno and `FineTurno`=var_FineTurno ;
-declare continue handler for not found set done= true;
+
+declare counter int;
+declare var_Esiste int;
+
 declare exit handler for sqlexception
     begin
         rollback;  -- rollback any changes made in the transaction
@@ -656,31 +655,27 @@ declare exit handler for sqlexception
     
     
 	set transaction read only;
-    set transaction isolation level read committed;
+    set transaction isolation level repeatable read;
 	start transaction;
     
-    open cur;
-    read_loop: loop
-		fetch cur into var_Esiste;
-		if var_Esiste is not null then
-			leave read_loop;
-        end if;
-        if done then
-			signal sqlstate '45003' set message_text='Il Conducente inserito non esegue quel turno';
-		end if;
-	end loop;
-    close cur;
+
+    select count(*) from `TurniLavorativi` where `Conducente_CF`= var_Conducente and `InizioTurno`=var_InizioTurno and `FineTurno`=var_FineTurno into var_Esiste;
     
-	select `CF`
+    if var_Esiste = 0 then
+		signal sqlstate '45004' set message_text='Il Conducente inserito non esegue quel turno';
+    end if;
+    
+    select `CF`
 	from `Conducente`
 	where `InMalattia`=b'0'
 	and `CF` not in (select `Conducente_CF` 
 						from `TurniLavorativi`)
                 
 	union 
-
+    
+    
 	select distinct `Conducente_CF`
-	from `Conducente` join `TurniLavorativi`  on  `CF` = `Conducente_CF`
+	from `Conducente` left join `TurniLavorativi`  on  `CF` = `Conducente_CF`
 	where  `Conducente_CF`  not in (select `Conducente_CF`
 								from `TurniLavorativi` 
 								where `InizioTurno` = var_InizioTurno and 
@@ -689,7 +684,7 @@ declare exit handler for sqlexception
 	and  `Conducente_CF` not in (select `Conducente_CF`
 							  from `TurniLavorativi`  
 							  group by `Conducente_CF`
-							  having count(*)=5)
+							  having count(*)>4)
 	and `InMalattia` =b'0'
     and `Conducente_CF` <> var_Conducente
     and `VeicoloPubblico_Matricola` in (select `VeicoloPubblico_Matricola` 
@@ -697,12 +692,11 @@ declare exit handler for sqlexception
                                             where `CF` =var_Conducente)
 	and valid_conducente(`Conducente_CF`, var_InizioTurno, var_FineTurno);
     
-    select found_rows() into count;
-	if count = 0 then
-		signal sqlstate '45032' set message_text = "Non esiste un conducente valido per la sostituzione";
+   
+    select found_rows() into counter; 
+	if counter = 0 then
+		signal sqlstate '45004' set message_text = "Non esiste un conducente valido per la sostituzione";
 	end if;
-    
-    
     
     commit;
 END$$
@@ -753,12 +747,14 @@ BEGIN
     where `TrattaStradale` = var_TrattaCorrente and `DataPartenza`=var_DataPartenza and `OrarioPartenza`= var_OrarioPartenza into var_VeicoloAttuale;
 	
 	if var_VeicoloAttuale is null then 
-		signal sqlstate '45006' set message_text="Informazioni inserite non valide";
+		signal sqlstate '45011' set message_text="Informazioni inserite non valide";
 	end if;
     
     select `Latitudine`,`Longitudine` 
     from  `VeicoloPubblico`
     where `Matricola`=var_VeicoloAttuale into var_LatitudinePartenza, var_LongitudinePartenza;
+    
+    
     
     select `Waypoint_Latitudine`,`Waypoint_Longitudine`
     from `Fermata`
@@ -796,7 +792,7 @@ BEGIN
     close cur1;
     close cur2;
     if var_Distanza = 0 then
-		signal sqlstate '45005' set message_text="Fermata inserita non valida o già superata";
+		signal sqlstate '45011' set message_text="Fermata inserita non valida o già superata";
     end if;
 	commit;
 END$$
@@ -896,7 +892,7 @@ BEGIN
         select `Ruolo` from `Utenti` where `Username` = var_Username into var_Ruolo;
         
         if var_ruolo <> 'Conducente' then
-			signal sqlstate '45007' set message_text = "Il Conducente che si vuole inserire non è tale";
+			signal sqlstate '45001' set message_text = "Il Conducente che si vuole inserire non è tale";
 		end if;
         
         insert into `Conducente` values (var_CF, var_Username, var_Nome, var_Cognome, var_DataDiNascita, var_LuogoDiNascita, var_NumeroPatente, var_ScadenzaPatente, b'0', var_VeicoloAssegnato);
@@ -1072,7 +1068,7 @@ BEGIN
         
 	select count(*) from `Conducente`  where `CF`= var_Conducente into counter;
 	if counter = 0 then
-			signal sqlstate '45020' set message_text = "Il conducente inserito non esiste";
+			signal sqlstate '45014' set message_text = "Il conducente inserito non esiste";
         end if;
 	Delete from `Conducente`  where `CF`= var_Conducente;
     commit;
@@ -1104,7 +1100,7 @@ BEGIN
         
 	select count(*) from `TrattaStradale`  where `CodiceIdentificativo`= var_Tratta into counter;
 	if counter = 0 then
-			signal sqlstate '45028' set message_text = "Non esiste la tratta indicata";
+			signal sqlstate '45019' set message_text = "Non esiste la tratta indicata";
 	end if;
 	Delete from `TrattaStradale`  where `CodiceIdentificativo`= var_Tratta;
 	commit;
@@ -1136,7 +1132,7 @@ BEGIN
         
 	select count(*) from `AggregazioneTratta_Waypoint`  where `TrattaStradale_CodiceIdentificativo`= var_Tratta and `Waypoint_Latitudine`= var_latitudine and `Waypoint_Longitudine` = var_longitudine into counter;
 	if counter = 0 then
-			signal sqlstate '45030' set message_text = "Non esiste il waypoint selezionato in quella tratta";
+			signal sqlstate '45023' set message_text = "Non esiste il waypoint selezionato in quella tratta";
 	end if;
 	Delete from `AggregazioneTratta_Waypoint`  where `TrattaStradale_CodiceIdentificativo`= var_Tratta and `Waypoint_Latitudine`= var_latitudine and `Waypoint_Longitudine` = var_longitudine;
 	commit;
@@ -1168,7 +1164,7 @@ BEGIN
         
 	select count(*) from `Waypoint`  where `Latitudine`= var_latitudine and `Longitudine`= var_longitudine into counter;
 	if counter = 0 then
-			signal sqlstate '45024' set message_text = "Non esiste il waypoint indicato";
+			signal sqlstate '45022' set message_text = "Non esiste il waypoint indicato";
 	end if;
 	Delete from `Waypoint`  where `Latitudine`= var_latitudine and `Longitudine`= var_longitudine;
 	commit;
@@ -1200,7 +1196,7 @@ BEGIN
         
 	select count(*) from `Fermata`  where `CodiceFermata`= var_Fermata into counter;
 	if counter = 0 then
-			signal sqlstate '45026' set message_text = "Non esiste la fermata selezionata";
+			signal sqlstate '45015' set message_text = "Non esiste la fermata selezionata";
 	end if;
 	Delete from `Fermata`  where `CodiceFermata`= var_Fermata;
 	commit;
@@ -1232,7 +1228,7 @@ BEGIN
         
 	select count(*) from `TrattaReale`  where `TrattaStradale`= var_Tratta and `DataPartenza`= var_DataPartenza and `OrarioPartenza` = var_OrarioPartenza into counter;
 	if counter = 0 then
-			signal sqlstate '45022' set message_text = "Non esiste la tratta reale selezionata";
+			signal sqlstate '45018' set message_text = "Non esiste la tratta reale selezionata";
 	end if;
 	Delete from `TrattaReale`  where `TrattaStradale`= var_Tratta and `DataPartenza`= var_DataPartenza and `OrarioPartenza` = var_OrarioPartenza;
 	commit;
@@ -1264,7 +1260,7 @@ BEGIN
         
 	select count(*) from `VeicoloPubblico`  where `Matricola`= var_Matricola into counter;
 	if counter = 0 then
-			signal sqlstate '45029' set message_text = "Non esiste il veicolo pubblico indicato";
+			signal sqlstate '45021' set message_text = "Non esiste il veicolo pubblico indicato";
 	end if;
 	Delete from `VeicoloPubblico`  where `Matricola`= var_Matricola;
 	commit;
@@ -1296,7 +1292,7 @@ BEGIN
         
 		select count(*) from `Abbonamento`  where `Codice`= var_codice into counter;
         if counter = 0 then
-			signal sqlstate '45018' set message_text = "L'abbonamento inserito non esiste";
+			signal sqlstate '45012' set message_text = "L'abbonamento inserito non esiste";
         end if;
         Delete from `Abbonamento`  where `Codice`= var_codice;
         commit;
@@ -1328,7 +1324,7 @@ BEGIN
         
 	select count(*) from `BigliettoElettronico`  where `CodiceBigliettoEmesso`= var_codice into counter;
 	if counter = 0 then
-			signal sqlstate '45025' set message_text = "Non esiste il biglietto elettronico inserito";
+			signal sqlstate '45013' set message_text = "Non esiste il biglietto elettronico inserito";
 	end if;
 	Delete from `BigliettoElettronico`  where `CodiceBigliettoEmesso`= var_codice;
 	commit;
@@ -1360,7 +1356,7 @@ BEGIN
         
 	select count(*) from `Manutenzione`  where `VeicoloPubblico_Matricola`= var_Veicolo and `Data`= var_Data into counter;
 	if counter = 0 then
-			signal sqlstate '45021' set message_text = "Non esiste la manutenzione indicata";
+			signal sqlstate '45016' set message_text = "Non esiste la manutenzione indicata";
 	end if;
         
 	Delete from `Manutenzione`  where `VeicoloPubblico_Matricola`= var_Veicolo and `Data`= var_Data;
@@ -1393,7 +1389,7 @@ BEGIN
         
 	select count(*) from `Utenti`  where `Username`= var_Username into counter;
 	if counter = 0 then
-			signal sqlstate '45023' set message_text = "Non esiste l'utente selezionato";
+			signal sqlstate '45020' set message_text = "Non esiste l'utente selezionato";
 	end if;
 	Delete from `Utenti`  where `Username`= var_Username;
     commit;
@@ -1425,12 +1421,12 @@ BEGIN
         
 	select count(*) from `Conducente`  where `CF`= var_Conducente into counter;
 	if counter = 0 then
-			signal sqlstate '45020' set message_text = "Il conducente inserito non esiste";
+			signal sqlstate '45002' set message_text = "Il conducente inserito non esiste";
 	end if;
     
     select count(*) from `VeicoloPubblico`  where `Matricola`= var_veicolo into counter;
 	if counter = 0 then
-			signal sqlstate '45029' set message_text = "Non esiste il veicolo pubblico indicato";
+			signal sqlstate '45002' set message_text = "Non esiste il veicolo pubblico indicato";
 	end if;
     
     update `Conducente` set `VeicoloPubblico_Matricola`=var_veicolo
@@ -1465,7 +1461,7 @@ BEGIN
     
 		select count(*) from `CercaTurni`  where `CF`= var_cf into counter;
         if counter = 0 then
-			signal sqlstate '45036' set message_text = "Il conducente inserito non svolge alcun turno";
+			signal sqlstate '45008' set message_text = "Il conducente inserito non svolge alcun turno";
         end if;
 		
         select * from `CercaTurni` where `CF`= var_cf;
@@ -1499,7 +1495,7 @@ BEGIN
     
     select count(*) from `CercaConducenti`  where `Codice Fiscale`= var_cf into counter;
 	if counter = 0 then
-			signal sqlstate '45020' set message_text = "Il conducente inserito non esiste";
+			signal sqlstate '45005' set message_text = "Il conducente inserito non esiste";
         end if;
 	
     select * from `CercaConducenti`  where `Codice Fiscale`= var_cf ;
@@ -1533,7 +1529,7 @@ BEGIN
         
 	select count(*) from `Cerca_Waypoints`  where `Tratta`= var_Tratta  into counter;
 	if counter = 0 then
-			signal sqlstate '45038' set message_text = "Non esiste il waypoints per quella tratta";
+			signal sqlstate '45009' set message_text = "Non esiste il waypoints per quella tratta";
 	end if;
     
     select * from `Cerca_Waypoints`  where `Tratta`= var_Tratta order by `Numero Ordine` asc;
@@ -1566,7 +1562,7 @@ BEGIN
     
 		select count(*) from `Manutenzione`  where `VeicoloPubblico_Matricola`= var_Matricola into counter;
         if counter = 0 then
-			signal sqlstate '45038' set message_text = "Il veicolo indicato non ha manutenzioni";
+			signal sqlstate '45006' set message_text = "Il veicolo indicato non ha manutenzioni";
         end if;
 		
         select `VeicoloPubblico_Matricola` as `Matricola Veicolo`, `Data` as `Data Manutenzione`, `Costo` as `Costo Manutenzione`, `TipoIntervento` from `Manutenzione` where `VeicoloPubblico_Matricola`= var_Matricola;
@@ -1599,7 +1595,7 @@ BEGIN
     
 		select count(*) from `TrattaReale`  where `DataPartenza`= var_Data into counter;
         if counter = 0 then
-			signal sqlstate '45039' set message_text = "Non esistono tratte per quella data";
+			signal sqlstate '45007' set message_text = "Non esistono tratte per quella data";
         end if;
 		
         select `TrattaStradale` as `Codice Tratta`, `DataPartenza` as `Data Partenza`, `OrarioPartenza` as `Orario Partenza`, `VeicoloPubblico_Matricola` as `Matricola Veicolo` from `TrattaReale` where `DataPartenza`= var_Data;
@@ -1631,234 +1627,6 @@ DROP TABLE IF EXISTS `progetto`.`Cerca_Waypoints`;
 DROP VIEW IF EXISTS `progetto`.`Cerca_Waypoints` ;
 USE `progetto`;
 CREATE  OR REPLACE VIEW `Cerca_Waypoints` (`Tratta`, `Latitudine Waypoint`, `Longitudine Waypoint`, `Numero Ordine`) AS SELECT *  from `AggregazioneTratta_Waypoint`;
-USE `progetto`;
-
-DELIMITER $$
-
-USE `progetto`$$
-DROP TRIGGER IF EXISTS `progetto`.`MatricolaDi4Cifre` $$
-USE `progetto`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`MatricolaDi4Cifre` BEFORE INSERT ON `VeicoloPubblico` FOR EACH ROW
-BEGIN
- if not (NEW.Matricola regexp '^[0-9]{4}$')  then
-     signal sqlstate '45015' set message_text = 'La matricola inserita ha un numero di cifre diverso da 4 oppure contiene caratteri alfabetici';
-     end if;
-END$$
-
-
-USE `progetto`$$
-DROP TRIGGER IF EXISTS `progetto`.`DataAcquisto` $$
-USE `progetto`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`DataAcquisto` BEFORE INSERT ON `VeicoloPubblico` FOR EACH ROW
-BEGIN
-	if datediff(curdate(),new.DataDiAcquisto)<0 then
-		signal sqlstate '45033' set message_text="Data di acquisto inserita non valida";
-        end if;
-END$$
-
-
-USE `progetto`$$
-DROP TRIGGER IF EXISTS `progetto`.`CodiceFermataDi5Cifre` $$
-USE `progetto`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`CodiceFermataDi5Cifre` BEFORE INSERT ON `Fermata` FOR EACH ROW
-BEGIN
-
-	if not (NEW.CodiceFermata regexp '^[0-9]{5}$*') then
-     signal sqlstate '45016' set message_text = 'Il codice fermata inserito ha un numero di cifre diverso da 5 oppure contiene caratteri alfabetici';
-     end if;
-END$$
-
-
-USE `progetto`$$
-DROP TRIGGER IF EXISTS `progetto`.`CodiceTrattaDI5Cifre` $$
-USE `progetto`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`CodiceTrattaDI5Cifre` BEFORE INSERT ON `TrattaStradale` FOR EACH ROW
-BEGIN
-	if not (NEW.CodiceIdentificativo regexp '^[0-9]{5}$') then
-     signal sqlstate '45017' set message_text = 'Il codice di tratta inserito ha un numero di cifre diverso da 5 oppure contiene caratteri alfabetici';
-     end if;
-END$$
-
-
-USE `progetto`$$
-DROP TRIGGER IF EXISTS `progetto`.`Conducente_DataNascita` $$
-USE `progetto`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`Conducente_DataNascita` BEFORE INSERT ON `Conducente` FOR EACH ROW
-BEGIN
-  IF (year(curdate())-year(new.DataDiNascita))<24 THEN 
-	signal sqlstate '45009' set message_text ='Il conducente inserito non ha compiuto 24 anni';
-  END IF;
-  
-  IF (year(curdate())-year(new.DataDiNascita))=24 THEN 
-	IF (month(curdate())-month(new.DataDiNascita))<0 THEN
-	signal sqlstate '45009' set message_text ='Il conducente inserito non ha compiuto 24 anni';
-  END IF; 
-  END IF;
-END$$
-
-
-USE `progetto`$$
-DROP TRIGGER IF EXISTS `progetto`.`InizioTurno_FineTurno` $$
-USE `progetto`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`InizioTurno_FineTurno` BEFORE INSERT ON `TurniLavorativi`  FOR EACH ROW
-BEGIN
-  declare OreDifferenza time;
-  set OreDifferenza=0;
-  set OreDifferenza= timediff(NEW.fineturno,NEW.inizioturno);
-  IF time_to_sec(OreDifferenza)<0 THEN 
-  signal sqlstate '45010' set message_text ='Orario fine turno minore di quello iniziale';
-  END IF;  
-END$$
-
-
-USE `progetto`$$
-DROP TRIGGER IF EXISTS `progetto`.`turniDi8Ore` $$
-USE `progetto`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`turniDi8Ore` BEFORE INSERT ON `TurniLavorativi`  FOR EACH ROW
-BEGIN
-  declare OreDifferenza time;
-  set OreDifferenza=0;
-  set OreDifferenza= timediff(NEW.fineturno,NEW.inizioturno);
-  IF time_to_sec(OreDifferenza)>28800 THEN 
-  signal sqlstate '45012' set message_text =' Piu di 8 ore di differenza';
-  END IF;  
-END$$
-
-
-USE `progetto`$$
-DROP TRIGGER IF EXISTS `progetto`.`ConducentiNonAssociati` $$
-USE `progetto`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`ConducentiNonAssociati` BEFORE INSERT ON `TurniLavorativi`  FOR EACH ROW
-BEGIN
-	declare var_Malato binary;
-    declare var_Veicolo char(4);
-    set var_Malato=b'0';
-    
-	select `InMalattia`, `VeicoloPubblico_Matricola`
-    from `Conducente`
-    where `CF`=NEW.Conducente_CF into var_Malato, var_Veicolo;
-    
-    if var_Malato=1 then
-		signal sqlstate '45013' set message_text="Si vuole inserire l'orario di un conducente malato"; 
-     end if;
-     if var_Veicolo is null then
-		signal sqlstate '45013' set message_text="Si vuole inserire l'orario di un conducente non associato ad alcun veicolo"; 
-     end if;
-
-		
-END$$
-
-
-USE `progetto`$$
-DROP TRIGGER IF EXISTS `progetto`.`OrariDisgiunti` $$
-USE `progetto`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`OrariDisgiunti` BEFORE INSERT ON `TurniLavorativi`  FOR EACH ROW
-BEGIN
-	declare done int default false; 
-    declare var_inizioTurno datetime;
-	declare var_fineTurno datetime;
-	declare cur cursor for select `InizioTurno`,`FineTurno`
-							from `TurniLavorativi`
-                            where `Conducente_CF`=new.Conducente_CF;
-	declare continue handler for not found set done= true;      
-    
-     open cur;
-     read_loop:loop
-		fetch cur into var_inizioTurno, var_fineTurno;
-        if (to_seconds(new.InizioTurno) - to_seconds(var_fineTurno))<0  then
-			if (to_seconds(new.FineTurno) - to_seconds(var_inizioTurno))>0 then
-			signal sqlstate '45014' set message_text = 'Turno di lavoro non disgiunto con quelli già presenti';
-			end if;
-		end if;
-        if done then 
-         leave read_loop;
-         end if;
-	end loop;
-    close cur;
-	
-    
-END$$
-
-
-USE `progetto`$$
-DROP TRIGGER IF EXISTS `progetto`.`max turni per conducente` $$
-USE `progetto`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`max turni per conducente` BEFORE INSERT ON `TurniLavorativi`  FOR EACH ROW
-BEGIN
-	declare counter int; 
-    set counter=0;
-    select count(*)
-    from `TurniLavorativi` 
-    where `Conducente_CF` = NEW.conducente_CF into counter;
-    
-    if counter > 4 then
-     signal sqlstate '45011' set message_text = 'Troppi turni per quel conducente'; 
-     end if;
-END$$
-
-
-USE `progetto`$$
-DROP TRIGGER IF EXISTS `progetto`.`TurniLavorativi_TurniFuturi` $$
-USE `progetto`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`TurniLavorativi_TurniFuturi` BEFORE INSERT ON `TurniLavorativi` FOR EACH ROW
-BEGIN
-	if datediff(curdate(),new.InizioTurno)>0 then
-		signal sqlstate '45035' set message_text="Impossibile inserire turni passati, cioè turni che dovrebbero essere già stati eseguiti.";
-	end if;
-END$$
-
-
-USE `progetto`$$
-DROP TRIGGER IF EXISTS `progetto`.`max turni per conducente per l'update` $$
-USE `progetto`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`max turni per conducente per l'update` BEFORE UPDATE ON `TurniLavorativi`  FOR EACH ROW
-BEGIN
-	declare counter int; 
-    set counter=0;
-    select count(*)
-    from `TurniLavorativi` 
-    where `Conducente_CF` = NEW.conducente_CF into counter;
-    
-    if counter > 4 then
-     signal sqlstate '45011' set message_text = 'troppi turni per quel conducente'; 
-     end if;
-END$$
-
-
-USE `progetto`$$
-DROP TRIGGER IF EXISTS `progetto`.`DataPartenza` $$
-USE `progetto`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`DataPartenza` BEFORE INSERT ON `TrattaReale` FOR EACH ROW
-BEGIN
-	if datediff(curdate(),new.DataPartenza)>0 then
-		signal sqlstate '45034' set message_text="Data Partenza inserita non valida";
-	end if;
-END$$
-
-
-USE `progetto`$$
-DROP TRIGGER IF EXISTS `progetto`.`Manutenzione_Data` $$
-USE `progetto`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`Manutenzione_Data` BEFORE INSERT ON `Manutenzione` FOR EACH ROW
-BEGIN
-	if datediff(curdate(),new.Data)<0 then
-		signal sqlstate '45034' set message_text="Data di manutenzione inserita non valida";
-	end if;
-END$$
-
-
-USE `progetto`$$
-DROP TRIGGER IF EXISTS `progetto`.`NumeroOrdine` $$
-USE `progetto`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`NumeroOrdine` BEFORE INSERT ON `AggregazioneTratta_Waypoint` FOR EACH ROW
-BEGIN
-	if new.Ordine < 1 then
-		signal sqlstate '45035' set message_text= 'Il numero di ordine deve essere almeno maggiore o uguale di 1';
-	end if;
-END$$
-
-
-DELIMITER ;
 SET SQL_MODE = '';
 DROP USER IF EXISTS AmministratoreServizio;
 SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
@@ -2046,7 +1814,7 @@ INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioP
 INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-03-18', '20:30:00', '1234');
 INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-03-18', '00:30:00', '1234');
 INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-03-17', '12:40:00', '1234');
-INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('11111', '2021-01-31', '22:30', '1234');
+INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('11111', '2021-02-27', '22:30', '1234');
 
 COMMIT;
 
@@ -2061,6 +1829,236 @@ INSERT INTO `progetto`.`AggregazioneTratta_Waypoint` (`TrattaStradale_CodiceIden
 
 COMMIT;
 
+USE `progetto`;
+
+DELIMITER $$
+
+USE `progetto`$$
+DROP TRIGGER IF EXISTS `progetto`.`MatricolaDi4Cifre` $$
+USE `progetto`$$
+CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`MatricolaDi4Cifre` BEFORE INSERT ON `VeicoloPubblico` FOR EACH ROW
+BEGIN
+ if not (NEW.Matricola regexp '^[0-9]{4}$')  then
+     signal sqlstate '45034' set message_text = 'La matricola inserita ha un numero di cifre diverso da 4 oppure contiene caratteri alfabetici';
+     end if;
+END$$
+
+
+USE `progetto`$$
+DROP TRIGGER IF EXISTS `progetto`.`DataAcquisto` $$
+USE `progetto`$$
+CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`DataAcquisto` BEFORE INSERT ON `VeicoloPubblico` FOR EACH ROW
+BEGIN
+	if datediff(curdate(),new.DataDiAcquisto)<0 then
+		signal sqlstate '45035' set message_text="Data di acquisto inserita non valida";
+        end if;
+END$$
+
+
+USE `progetto`$$
+DROP TRIGGER IF EXISTS `progetto`.`CodiceFermataDi5Cifre` $$
+USE `progetto`$$
+CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`CodiceFermataDi5Cifre` BEFORE INSERT ON `Fermata` FOR EACH ROW
+BEGIN
+
+	if not (NEW.CodiceFermata regexp '^[0-9]{5}$*') then
+     signal sqlstate '45037' set message_text = 'Il codice fermata inserito ha un numero di cifre diverso da 5 oppure contiene caratteri alfabetici';
+     end if;
+END$$
+
+
+USE `progetto`$$
+DROP TRIGGER IF EXISTS `progetto`.`CodiceTrattaDI5Cifre` $$
+USE `progetto`$$
+CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`CodiceTrattaDI5Cifre` BEFORE INSERT ON `TrattaStradale` FOR EACH ROW
+BEGIN
+	if not (NEW.CodiceIdentificativo regexp '^[0-9]{5}$') then
+     signal sqlstate '45038' set message_text = 'Il codice di tratta inserito ha un numero di cifre diverso da 5 oppure contiene caratteri alfabetici';
+     end if;
+END$$
+
+
+USE `progetto`$$
+DROP TRIGGER IF EXISTS `progetto`.`Conducente_DataNascita` $$
+USE `progetto`$$
+CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`Conducente_DataNascita` BEFORE INSERT ON `Conducente` FOR EACH ROW
+BEGIN
+  IF (year(curdate())-year(new.DataDiNascita))<24 THEN 
+	signal sqlstate '45033' set message_text ='Il conducente inserito non ha compiuto 24 anni';
+  END IF;
+  
+  IF (year(curdate())-year(new.DataDiNascita))=24 THEN 
+	IF (month(curdate())-month(new.DataDiNascita))<0 THEN
+	signal sqlstate '45033' set message_text ='Il conducente inserito non ha compiuto 24 anni';
+  END IF; 
+  END IF;
+END$$
+
+
+USE `progetto`$$
+DROP TRIGGER IF EXISTS `progetto`.`InizioTurno_FineTurno` $$
+USE `progetto`$$
+CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`InizioTurno_FineTurno` BEFORE INSERT ON `TurniLavorativi`  FOR EACH ROW
+BEGIN
+  declare OreDifferenza time;
+  set OreDifferenza=0;
+  set OreDifferenza= timediff(NEW.fineturno,NEW.inizioturno);
+  IF time_to_sec(OreDifferenza)<0 THEN 
+  signal sqlstate '45025' set message_text ='Orario fine turno minore di quello iniziale';
+  END IF;  
+END$$
+
+
+USE `progetto`$$
+DROP TRIGGER IF EXISTS `progetto`.`turniDi8Ore` $$
+USE `progetto`$$
+CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`turniDi8Ore` BEFORE INSERT ON `TurniLavorativi`  FOR EACH ROW
+BEGIN
+  declare OreDifferenza time;
+  set OreDifferenza=0;
+  set OreDifferenza= timediff(NEW.fineturno,NEW.inizioturno);
+  IF time_to_sec(OreDifferenza)>28800 THEN 
+  signal sqlstate '45026' set message_text =' Piu di 8 ore di differenza';
+  END IF;  
+END$$
+
+
+USE `progetto`$$
+DROP TRIGGER IF EXISTS `progetto`.`ConducentiNonAssociati` $$
+USE `progetto`$$
+CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`ConducentiNonAssociati` BEFORE INSERT ON `TurniLavorativi`  FOR EACH ROW
+BEGIN
+	declare var_Malato binary;
+    declare var_Veicolo char(4);
+    set var_Malato=b'0';
+    
+	select `InMalattia`, `VeicoloPubblico_Matricola`
+    from `Conducente`
+    where `CF`=NEW.Conducente_CF into var_Malato, var_Veicolo;
+    
+    if var_Malato=1 then
+		signal sqlstate '45027' set message_text="Si vuole inserire l'orario di un conducente malato"; 
+     end if;
+     if var_Veicolo is null then
+		signal sqlstate '45013' set message_text="Si vuole inserire l'orario di un conducente non associato ad alcun veicolo"; 
+     end if;
+
+		
+END$$
+
+
+USE `progetto`$$
+DROP TRIGGER IF EXISTS `progetto`.`OrariDisgiunti` $$
+USE `progetto`$$
+CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`OrariDisgiunti` BEFORE INSERT ON `TurniLavorativi`  FOR EACH ROW
+BEGIN
+	declare done int default false; 
+    declare var_inizioTurno datetime;
+	declare var_fineTurno datetime;
+	declare cur cursor for select `InizioTurno`,`FineTurno`
+							from `TurniLavorativi`
+                            where `Conducente_CF`=new.Conducente_CF;
+	declare continue handler for not found set done= true;      
+    
+     open cur;
+     read_loop:loop
+		fetch cur into var_inizioTurno, var_fineTurno;
+        if (to_seconds(new.InizioTurno) - to_seconds(var_fineTurno))<0  then
+			if (to_seconds(new.FineTurno) - to_seconds(var_inizioTurno))>0 then
+			signal sqlstate '45028' set message_text = 'Turno di lavoro non disgiunto con quelli già presenti';
+			end if;
+		end if;
+        if done then 
+         leave read_loop;
+         end if;
+	end loop;
+    close cur;
+	
+    
+END$$
+
+
+USE `progetto`$$
+DROP TRIGGER IF EXISTS `progetto`.`max turni per conducente` $$
+USE `progetto`$$
+CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`max turni per conducente` BEFORE INSERT ON `TurniLavorativi`  FOR EACH ROW
+BEGIN
+	declare counter int; 
+    set counter=0;
+    
+    select count(*)
+    from `TurniLavorativi` 
+    where `Conducente_CF` = NEW.conducente_CF into counter;
+    
+    if counter > 4 then
+     signal sqlstate '45029' set message_text = 'Troppi turni per quel conducente'; 
+     end if;
+END$$
+
+
+USE `progetto`$$
+DROP TRIGGER IF EXISTS `progetto`.`TurniLavorativi_TurniFuturi` $$
+USE `progetto`$$
+CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`TurniLavorativi_TurniFuturi` BEFORE INSERT ON `TurniLavorativi` FOR EACH ROW
+BEGIN
+	if datediff(curdate(),new.InizioTurno)>0 then
+		signal sqlstate '45030' set message_text="Impossibile inserire turni passati, cioè turni che dovrebbero essere già stati eseguiti.";
+	end if;
+END$$
+
+
+USE `progetto`$$
+DROP TRIGGER IF EXISTS `progetto`.`max turni per conducente per l'update` $$
+USE `progetto`$$
+CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`max turni per conducente per l'update` BEFORE UPDATE ON `TurniLavorativi`  FOR EACH ROW
+BEGIN
+	declare counter int; 
+    set counter=0;
+    
+    select count(*)
+    from `TurniLavorativi` 
+    where `Conducente_CF` = NEW.conducente_CF into counter;
+    
+    if counter > 4 then
+     signal sqlstate '45031' set message_text = 'Troppi turni per quel conducente'; 
+     end if;
+END$$
+
+
+USE `progetto`$$
+DROP TRIGGER IF EXISTS `progetto`.`DataPartenza` $$
+USE `progetto`$$
+CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`DataPartenza` BEFORE INSERT ON `TrattaReale` FOR EACH ROW
+BEGIN
+	if datediff(curdate(),new.DataPartenza)>0 then
+		signal sqlstate '45036' set message_text="Data Partenza inserita non valida";
+	end if;
+END$$
+
+
+USE `progetto`$$
+DROP TRIGGER IF EXISTS `progetto`.`Manutenzione_Data` $$
+USE `progetto`$$
+CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`Manutenzione_Data` BEFORE INSERT ON `Manutenzione` FOR EACH ROW
+BEGIN
+	if datediff(curdate(),new.Data)<0 then
+		signal sqlstate '45032' set message_text="Data di manutenzione inserita non valida";
+	end if;
+END$$
+
+
+USE `progetto`$$
+DROP TRIGGER IF EXISTS `progetto`.`NumeroOrdine` $$
+USE `progetto`$$
+CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`NumeroOrdine` BEFORE INSERT ON `AggregazioneTratta_Waypoint` FOR EACH ROW
+BEGIN
+	if new.Ordine < 1 then
+		signal sqlstate '45039' set message_text= 'Il numero di ordine deve essere almeno maggiore o uguale di 1';
+	end if;
+END$$
+
+
+DELIMITER ;
 -- begin attached script 'script'
 delimiter !
 create function `valid_conducente`(var_conducenteCF char(16),var_InizioTurno datetime, var_FineTurno datetime)
