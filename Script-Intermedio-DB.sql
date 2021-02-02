@@ -60,8 +60,6 @@ ENGINE = InnoDB;
 
 CREATE INDEX `fk_Fermata_Waypoint1_idx` ON `progetto`.`Fermata` (`Waypoint_Latitudine` ASC, `Waypoint_Longitudine` ASC) VISIBLE;
 
-CREATE UNIQUE INDEX `Waypoint_Lat_long_UNIQUE` ON `progetto`.`Fermata` (`Waypoint_Latitudine` ASC, `Waypoint_Longitudine` ASC) VISIBLE;
-
 
 -- -----------------------------------------------------
 -- Table `progetto`.`TrattaStradale`
@@ -88,8 +86,6 @@ ENGINE = InnoDB;
 CREATE INDEX `fk_TrattaStradale_Fermata1_idx` ON `progetto`.`TrattaStradale` (`PrimaFermata` ASC) VISIBLE;
 
 CREATE INDEX `fk_TrattaStradale_Fermata2_idx` ON `progetto`.`TrattaStradale` (`UltimaFermata` ASC) VISIBLE;
-
-CREATE UNIQUE INDEX `PrimaFermata_UltimaFermata_UNIQUE` ON `progetto`.`TrattaStradale` (`PrimaFermata` ASC, `UltimaFermata` ASC) VISIBLE;
 
 
 -- -----------------------------------------------------
@@ -226,8 +222,6 @@ CREATE INDEX `fk_TrattaReale_VeicoloPubblico1_idx` ON `progetto`.`TrattaReale` (
 
 CREATE INDEX `fk_TrattaReale_TrattaStradale1_idx` ON `progetto`.`TrattaReale` (`TrattaStradale` ASC) VISIBLE;
 
-CREATE UNIQUE INDEX `DataPartenza_OrarioPartenza_Veicolo_UNIQUE` ON `progetto`.`TrattaReale` (`DataPartenza` ASC, `OrarioPartenza` ASC, `VeicoloPubblico_Matricola` ASC) VISIBLE;
-
 
 -- -----------------------------------------------------
 -- Table `progetto`.`Manutenzione`
@@ -259,7 +253,7 @@ CREATE TABLE IF NOT EXISTS `progetto`.`AggregazioneTratta_Waypoint` (
   `TrattaStradale_CodiceIdentificativo` CHAR(5) NOT NULL,
   `Waypoint_Latitudine` FLOAT NOT NULL,
   `Waypoint_Longitudine` FLOAT NOT NULL,
-  `Ordine` INT UNSIGNED NOT NULL,
+  `Ordine` INT NOT NULL,
   PRIMARY KEY (`TrattaStradale_CodiceIdentificativo`, `Waypoint_Latitudine`, `Waypoint_Longitudine`),
   CONSTRAINT `fk_AggregazioneTratta_Waypoint_TrattaStradale1`
     FOREIGN KEY (`TrattaStradale_CodiceIdentificativo`)
@@ -273,11 +267,9 @@ CREATE TABLE IF NOT EXISTS `progetto`.`AggregazioneTratta_Waypoint` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `fk_AggregazioneTratta_Waypoint_TrattaStradale1_idx` ON `progetto`.`AggregazioneTratta_Waypoint` (`TrattaStradale_CodiceIdentificativo` ASC) INVISIBLE;
+CREATE INDEX `fk_AggregazioneTratta_Waypoint_TrattaStradale1_idx` ON `progetto`.`AggregazioneTratta_Waypoint` (`TrattaStradale_CodiceIdentificativo` ASC) VISIBLE;
 
 CREATE INDEX `fk_AggregazioneTratta_Waypoint_Waypoint1_idx` ON `progetto`.`AggregazioneTratta_Waypoint` (`Waypoint_Latitudine` ASC, `Waypoint_Longitudine` ASC) VISIBLE;
-
-CREATE UNIQUE INDEX `TrattaStradale_CodiceIdentificativo_Ordine_UNIQUE` ON `progetto`.`AggregazioneTratta_Waypoint` (`TrattaStradale_CodiceIdentificativo` ASC, `Ordine` ASC) VISIBLE;
 
 USE `progetto` ;
 
@@ -1120,6 +1112,11 @@ USE `progetto`$$
 CREATE PROCEDURE `Elimina_WaypointInTratta` (in var_Tratta char(5), in var_latitudine float, in var_longitudine float)
 BEGIN
 	declare counter int;
+    declare var_NumeroOrdineIterazione int default null;
+	declare done int default false;
+    declare var_NumeroOrdine int;
+	declare cur cursor for select `Ordine` from `AggregazioneTratta_Waypoint` where `TrattaStradale_CodiceIdentificativo` = var_Tratta and `Ordine` >= var_NumeroOrdine order by `Ordine` asc;
+    declare continue handler for not found set done = true;
         
 	declare exit handler for sqlexception
 	begin
@@ -1127,15 +1124,31 @@ BEGIN
 		resignal;  -- raise again the sql exception to the caller
 	end;
         
-	set transaction isolation level read committed;
+	set transaction isolation level repeatable read;
 	start transaction;
         
 	select count(*) from `AggregazioneTratta_Waypoint`  where `TrattaStradale_CodiceIdentificativo`= var_Tratta and `Waypoint_Latitudine`= var_latitudine and `Waypoint_Longitudine` = var_longitudine into counter;
 	if counter = 0 then
 			signal sqlstate '45023' set message_text = "Non esiste il waypoint selezionato in quella tratta";
 	end if;
+    
 	Delete from `AggregazioneTratta_Waypoint`  where `TrattaStradale_CodiceIdentificativo`= var_Tratta and `Waypoint_Latitudine`= var_latitudine and `Waypoint_Longitudine` = var_longitudine;
+    
+    select `Ordine` from `AggregazioneTratta_Waypoint` where `TrattaStradale_CodiceIdentificativo` = var_Tratta and `Waypoint_Latitudine`= var_latitudine and `Waypoint_Longitudine` = var_longitudine into var_NumeroOrdine;
+    
+	open cur;
+			read_loop: loop
+				fetch cur into var_NumeroOrdineIterazione;
+					if done then
+						leave read_loop;
+					end if;
+					update `AggregazioneTratta_Waypoint` set `Ordine` = (var_NumeroOrdineIterazione - 1)
+					where `TrattaStradale_CodiceIdentificativo` = var_Tratta  and `Ordine` = var_NumeroOrdineIterazione;
+			end loop;
+			close cur;
+    
 	commit;
+    
 END$$
 
 DELIMITER ;
@@ -1627,208 +1640,6 @@ DROP TABLE IF EXISTS `progetto`.`Cerca_Waypoints`;
 DROP VIEW IF EXISTS `progetto`.`Cerca_Waypoints` ;
 USE `progetto`;
 CREATE  OR REPLACE VIEW `Cerca_Waypoints` (`Tratta`, `Latitudine Waypoint`, `Longitudine Waypoint`, `Numero Ordine`) AS SELECT *  from `AggregazioneTratta_Waypoint`;
-SET SQL_MODE = '';
-DROP USER IF EXISTS AmministratoreServizio;
-SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
-CREATE USER 'AmministratoreServizio' IDENTIFIED BY 'amministratoreservizio';
-
-GRANT EXECUTE ON procedure `progetto`.`Aggiungi_Conducente` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Aggiungi_Fermata` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Aggiungi_Manutenzione` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Aggiungi_TrattaReale` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Aggiungi_TrattaStradale` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Aggiungi_VeicoloPubblico` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Aggiungi_Waypoint` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Aggiungi_Waypoint_per_una_tratta` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Crea_Utente` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Elimina_Fermata` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Elimina_TrattaStradale` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Elimina_VeicoloPubblico` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Elimina_WaypointInTratta` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Elimina_Conducente` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Elimina_Manutenzione` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Elimina_TrattaReale` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Elimina_Utente` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Elimina_Waypoint` TO 'AmministratoreServizio';
-GRANT SHOW VIEW, CREATE VIEW, SELECT ON TABLE `progetto`.`CercaConducenti` TO 'AmministratoreServizio';
-GRANT CREATE VIEW, SHOW VIEW, SELECT ON TABLE `progetto`.`CercaTurni` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Cerca_InformazioniImportanti_Di_Un_Conducente` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`CercaTurni_per_Conducente` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`EmissioneBiglietto` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`EmissioneAbbonamento` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Elimina_Abbonamento` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Elimina_BigliettoElettronico` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Elimina_OrarioConducente` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Aggiungi_NuovoTurno_Conducente` TO 'AmministratoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Cerca_Manutenzioni_per_Veicolo` TO 'AmministratoreServizio';
-SET SQL_MODE = '';
-DROP USER IF EXISTS Conducente;
-SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
-CREATE USER 'Conducente' IDENTIFIED BY 'conducente';
-
-GRANT EXECUTE ON procedure `progetto`.`ProssimaPartenzaPrevista` TO 'Conducente';
-GRANT EXECUTE ON procedure `progetto`.`Cerca_Waypoints_per_una_Tratta` TO 'Conducente';
-GRANT CREATE VIEW, SHOW VIEW, SELECT ON TABLE `progetto`.`Cerca_Waypoints` TO 'Conducente';
-SET SQL_MODE = '';
-DROP USER IF EXISTS UtenteSistema;
-SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
-CREATE USER 'UtenteSistema' IDENTIFIED BY 'utentesistema';
-
-GRANT EXECUTE ON procedure `progetto`.`Distanza_Veicolo_Fermata` TO 'UtenteSistema';
-SET SQL_MODE = '';
-DROP USER IF EXISTS Login;
-SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
-CREATE USER 'Login' IDENTIFIED BY 'login';
-
-GRANT EXECUTE ON procedure `progetto`.`Login` TO 'Login';
-SET SQL_MODE = '';
-DROP USER IF EXISTS ValidatoreElettronico;
-SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
-CREATE USER 'ValidatoreElettronico' IDENTIFIED BY 'validatoreelettronico';
-
-GRANT EXECUTE ON procedure `progetto`.`Biglietto_Utilizzato` TO 'ValidatoreElettronico';
-GRANT EXECUTE ON procedure `progetto`.`Abbonamento_Utilizzato` TO 'ValidatoreElettronico';
-SET SQL_MODE = '';
-DROP USER IF EXISTS GPS;
-SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
-CREATE USER 'GPS' IDENTIFIED BY 'globalpositioningsystem';
-
-GRANT EXECUTE ON procedure `progetto`.`InformazioniGPS` TO 'GPS';
-SET SQL_MODE = '';
-DROP USER IF EXISTS GestoreServizio;
-SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
-CREATE USER 'GestoreServizio' IDENTIFIED BY 'gestoreservizio';
-
-GRANT EXECUTE ON procedure `progetto`.`Aggiungi_NuovoTurno_Conducente` TO 'GestoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`ConducenteGuarito` TO 'GestoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Cerca_ConducentiValidiperLaSostituzione` TO 'GestoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`AssociareConducente_Veicolo` TO 'GestoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`AssociazioneVeicoli_TrattaReale` TO 'GestoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`EmissioneBiglietto` TO 'GestoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`EmissioneAbbonamento` TO 'GestoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`SostituzioneTurno` TO 'GestoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Elimina_BigliettoElettronico` TO 'GestoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Elimina_Abbonamento` TO 'GestoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Elimina_OrarioConducente` TO 'GestoreServizio';
-GRANT CREATE VIEW, SHOW VIEW ON TABLE `progetto`.`CercaTurni` TO 'GestoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Cerca_InformazioniImportanti_Di_Un_Conducente` TO 'GestoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`CercaTurni_per_Conducente` TO 'GestoreServizio';
-GRANT CREATE VIEW, SHOW VIEW ON TABLE `progetto`.`CercaConducenti` TO 'GestoreServizio';
-GRANT EXECUTE ON procedure `progetto`.`Cerca_TratteReali_in_una_data` TO 'GestoreServizio';
-
-SET SQL_MODE=@OLD_SQL_MODE;
-SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
-SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
-
--- -----------------------------------------------------
--- Data for table `progetto`.`VeicoloPubblico`
--- -----------------------------------------------------
-START TRANSACTION;
-USE `progetto`;
-INSERT INTO `progetto`.`VeicoloPubblico` (`Matricola`, `DataDiAcquisto`, `Latitudine`, `Longitudine`) VALUES ('1234', '2018-10-09', 135.69, 140.27);
-INSERT INTO `progetto`.`VeicoloPubblico` (`Matricola`, `DataDiAcquisto`, `Latitudine`, `Longitudine`) VALUES ('1111', '2018-10-09', 1, 1);
-
-COMMIT;
-
-
--- -----------------------------------------------------
--- Data for table `progetto`.`Waypoint`
--- -----------------------------------------------------
-START TRANSACTION;
-USE `progetto`;
-INSERT INTO `progetto`.`Waypoint` (`Latitudine`, `Longitudine`) VALUES (128.2, 40.9);
-INSERT INTO `progetto`.`Waypoint` (`Latitudine`, `Longitudine`) VALUES (128.300, 40.100);
-
-COMMIT;
-
-
--- -----------------------------------------------------
--- Data for table `progetto`.`Fermata`
--- -----------------------------------------------------
-START TRANSACTION;
-USE `progetto`;
-INSERT INTO `progetto`.`Fermata` (`CodiceFermata`, `Waypoint_Latitudine`, `Waypoint_Longitudine`) VALUES ('12346', 128.2, 40.9);
-INSERT INTO `progetto`.`Fermata` (`CodiceFermata`, `Waypoint_Latitudine`, `Waypoint_Longitudine`) VALUES ('12347', 128.300, 40.100);
-
-COMMIT;
-
-
--- -----------------------------------------------------
--- Data for table `progetto`.`TrattaStradale`
--- -----------------------------------------------------
-START TRANSACTION;
-USE `progetto`;
-INSERT INTO `progetto`.`TrattaStradale` (`CodiceIdentificativo`, `PrimaFermata`, `UltimaFermata`) VALUES ('12345', '12346', '12347');
-INSERT INTO `progetto`.`TrattaStradale` (`CodiceIdentificativo`, `PrimaFermata`, `UltimaFermata`) VALUES ('11111', '12347', '12346');
-
-COMMIT;
-
-
--- -----------------------------------------------------
--- Data for table `progetto`.`Utenti`
--- -----------------------------------------------------
-START TRANSACTION;
-USE `progetto`;
-INSERT INTO `progetto`.`Utenti` (`Username`, `Password`, `Ruolo`) VALUES ('Mario', 'c4ca4238a0b923820dcc509a6f75849b', 'Conducente');
-INSERT INTO `progetto`.`Utenti` (`Username`, `Password`, `Ruolo`) VALUES ('Giuseppe', 'c81e728d9d4c2f636f067f89cc14862c', 'AmministratoreServizio');
-INSERT INTO `progetto`.`Utenti` (`Username`, `Password`, `Ruolo`) VALUES ('Francesco', 'eccbc87e4b5ce2fe28308fd9f2a7baf3', 'Conducente');
-INSERT INTO `progetto`.`Utenti` (`Username`, `Password`, `Ruolo`) VALUES ('Alessandro', 'a87ff679a2f3e71d9181a67b7542122c', 'GestoreServizio');
-INSERT INTO `progetto`.`Utenti` (`Username`, `Password`, `Ruolo`) VALUES ('Ludovico', 'c4ca4238a0b923820dcc509a6f75849b', 'UtenteSistema');
-
-COMMIT;
-
-
--- -----------------------------------------------------
--- Data for table `progetto`.`Conducente`
--- -----------------------------------------------------
-START TRANSACTION;
-USE `progetto`;
-INSERT INTO `progetto`.`Conducente` (`CF`, `Utenti_Username`, `Nome`, `Cognome`, `DataDiNascita`, `LuogoDiNascita`, `NumPatente`, `DataScadenzaPatente`, `InMalattia`, `VeicoloPubblico_Matricola`) VALUES ('1234567891111111', 'Mario', 'pippo', 'pluto', '1996-12-11', 'Sora', '0123456789', '2020-12-09', 0, '1234');
-INSERT INTO `progetto`.`Conducente` (`CF`, `Utenti_Username`, `Nome`, `Cognome`, `DataDiNascita`, `LuogoDiNascita`, `NumPatente`, `DataScadenzaPatente`, `InMalattia`, `VeicoloPubblico_Matricola`) VALUES ('1234567891111112', 'Francesco', 'pippo', 'pluto', '1997-01-11', 'Sora', '0123456789', '2020-12-09', 0, '1234');
-INSERT INTO `progetto`.`Conducente` (`CF`, `Utenti_Username`, `Nome`, `Cognome`, `DataDiNascita`, `LuogoDiNascita`, `NumPatente`, `DataScadenzaPatente`, `InMalattia`, `VeicoloPubblico_Matricola`) VALUES ('1234567891111113', 'Alessandro', 'pippo', 'pluto', '1966-12-11', 'Sora', '0123456789', '2020-12-09', 0, NULL);
-
-COMMIT;
-
-
--- -----------------------------------------------------
--- Data for table `progetto`.`TurniLavorativi`
--- -----------------------------------------------------
-START TRANSACTION;
-USE `progetto`;
-INSERT INTO `progetto`.`TurniLavorativi` (`Conducente_CF`, `InizioTurno`, `FineTurno`) VALUES ('1234567891111111', '2021-12-10 8:30:00', '2021-12-10 11:30:00');
-INSERT INTO `progetto`.`TurniLavorativi` (`Conducente_CF`, `InizioTurno`, `FineTurno`) VALUES ('1234567891111111', '2021-12-11 08:30:00', '2021-12-11 11:40');
-INSERT INTO `progetto`.`TurniLavorativi` (`Conducente_CF`, `InizioTurno`, `FineTurno`) VALUES ('1234567891111111', '2021-12-12 08:30:00', '2021-12-12 11:45');
-INSERT INTO `progetto`.`TurniLavorativi` (`Conducente_CF`, `InizioTurno`, `FineTurno`) VALUES ('1234567891111111', '2021-12-13 08:30:00', '2021-12-13 10:40');
-INSERT INTO `progetto`.`TurniLavorativi` (`Conducente_CF`, `InizioTurno`, `FineTurno`) VALUES ('1234567891111111', '2021-12-14 08:30:00', '2021-12-14 9:45');
-
-COMMIT;
-
-
--- -----------------------------------------------------
--- Data for table `progetto`.`TrattaReale`
--- -----------------------------------------------------
-START TRANSACTION;
-USE `progetto`;
-INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-03-10', '8:30', '1234');
-INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-03-17', '13:30:00', '1234');
-INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-03-18', '20:30:00', '1234');
-INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-03-18', '00:30:00', '1234');
-INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-03-17', '12:40:00', '1234');
-INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('11111', '2021-02-27', '22:30', '1234');
-
-COMMIT;
-
-
--- -----------------------------------------------------
--- Data for table `progetto`.`AggregazioneTratta_Waypoint`
--- -----------------------------------------------------
-START TRANSACTION;
-USE `progetto`;
-INSERT INTO `progetto`.`AggregazioneTratta_Waypoint` (`TrattaStradale_CodiceIdentificativo`, `Waypoint_Latitudine`, `Waypoint_Longitudine`, `Ordine`) VALUES ('12345', 128.2, 40.9, 2);
-INSERT INTO `progetto`.`AggregazioneTratta_Waypoint` (`TrattaStradale_CodiceIdentificativo`, `Waypoint_Latitudine`, `Waypoint_Longitudine`, `Ordine`) VALUES ('12345', 128.300, 40.100, 1);
-
-COMMIT;
-
 USE `progetto`;
 
 DELIMITER $$
@@ -1849,7 +1660,7 @@ DROP TRIGGER IF EXISTS `progetto`.`DataAcquisto` $$
 USE `progetto`$$
 CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`DataAcquisto` BEFORE INSERT ON `VeicoloPubblico` FOR EACH ROW
 BEGIN
-	if datediff(curdate(),new.DataDiAcquisto)<0 then
+	if curdate() < new.DataDiAcquisto then
 		signal sqlstate '45035' set message_text="Data di acquisto inserita non valida";
         end if;
 END$$
@@ -2001,7 +1812,7 @@ DROP TRIGGER IF EXISTS `progetto`.`TurniLavorativi_TurniFuturi` $$
 USE `progetto`$$
 CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`TurniLavorativi_TurniFuturi` BEFORE INSERT ON `TurniLavorativi` FOR EACH ROW
 BEGIN
-	if datediff(curdate(),new.InizioTurno)>0 then
+	if now() > new.InizioTurno then
 		signal sqlstate '45030' set message_text="Impossibile inserire turni passati, cioè turni che dovrebbero essere già stati eseguiti.";
 	end if;
 END$$
@@ -2041,7 +1852,7 @@ DROP TRIGGER IF EXISTS `progetto`.`Manutenzione_Data` $$
 USE `progetto`$$
 CREATE DEFINER = CURRENT_USER TRIGGER `progetto`.`Manutenzione_Data` BEFORE INSERT ON `Manutenzione` FOR EACH ROW
 BEGIN
-	if datediff(curdate(),new.Data)<0 then
+	if curdate() < new.Data then
 		signal sqlstate '45032' set message_text="Data di manutenzione inserita non valida";
 	end if;
 END$$
@@ -2059,6 +1870,210 @@ END$$
 
 
 DELIMITER ;
+SET SQL_MODE = '';
+DROP USER IF EXISTS AmministratoreServizio;
+SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+CREATE USER 'AmministratoreServizio' IDENTIFIED BY 'amministratoreservizio';
+
+GRANT EXECUTE ON procedure `progetto`.`Aggiungi_Conducente` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Aggiungi_Fermata` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Aggiungi_Manutenzione` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Aggiungi_TrattaReale` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Aggiungi_TrattaStradale` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Aggiungi_VeicoloPubblico` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Aggiungi_Waypoint` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Aggiungi_Waypoint_per_una_tratta` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Crea_Utente` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_Fermata` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_TrattaStradale` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_VeicoloPubblico` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_WaypointInTratta` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_Conducente` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_Manutenzione` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_TrattaReale` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_Utente` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_Waypoint` TO 'AmministratoreServizio';
+GRANT SHOW VIEW, CREATE VIEW, SELECT ON TABLE `progetto`.`CercaConducenti` TO 'AmministratoreServizio';
+GRANT CREATE VIEW, SHOW VIEW, SELECT ON TABLE `progetto`.`CercaTurni` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Cerca_InformazioniImportanti_Di_Un_Conducente` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`CercaTurni_per_Conducente` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`EmissioneBiglietto` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`EmissioneAbbonamento` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_Abbonamento` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_BigliettoElettronico` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_OrarioConducente` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Aggiungi_NuovoTurno_Conducente` TO 'AmministratoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Cerca_Manutenzioni_per_Veicolo` TO 'AmministratoreServizio';
+SET SQL_MODE = '';
+DROP USER IF EXISTS Conducente;
+SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+CREATE USER 'Conducente' IDENTIFIED BY 'conducente';
+
+GRANT EXECUTE ON procedure `progetto`.`ProssimaPartenzaPrevista` TO 'Conducente';
+GRANT EXECUTE ON procedure `progetto`.`Cerca_Waypoints_per_una_Tratta` TO 'Conducente';
+GRANT CREATE VIEW, SHOW VIEW, SELECT ON TABLE `progetto`.`Cerca_Waypoints` TO 'Conducente';
+SET SQL_MODE = '';
+DROP USER IF EXISTS UtenteSistema;
+SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+CREATE USER 'UtenteSistema' IDENTIFIED BY 'utentesistema';
+
+GRANT EXECUTE ON procedure `progetto`.`Distanza_Veicolo_Fermata` TO 'UtenteSistema';
+SET SQL_MODE = '';
+DROP USER IF EXISTS Login;
+SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+CREATE USER 'Login' IDENTIFIED BY 'login';
+
+GRANT EXECUTE ON procedure `progetto`.`Login` TO 'Login';
+SET SQL_MODE = '';
+DROP USER IF EXISTS ValidatoreElettronico;
+SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+CREATE USER 'ValidatoreElettronico' IDENTIFIED BY 'validatoreelettronico';
+
+GRANT EXECUTE ON procedure `progetto`.`Biglietto_Utilizzato` TO 'ValidatoreElettronico';
+GRANT EXECUTE ON procedure `progetto`.`Abbonamento_Utilizzato` TO 'ValidatoreElettronico';
+SET SQL_MODE = '';
+DROP USER IF EXISTS GPS;
+SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+CREATE USER 'GPS' IDENTIFIED BY 'globalpositioningsystem';
+
+GRANT EXECUTE ON procedure `progetto`.`InformazioniGPS` TO 'GPS';
+SET SQL_MODE = '';
+DROP USER IF EXISTS GestoreServizio;
+SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+CREATE USER 'GestoreServizio' IDENTIFIED BY 'gestoreservizio';
+
+GRANT EXECUTE ON procedure `progetto`.`Aggiungi_NuovoTurno_Conducente` TO 'GestoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`ConducenteGuarito` TO 'GestoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Cerca_ConducentiValidiperLaSostituzione` TO 'GestoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`AssociareConducente_Veicolo` TO 'GestoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`AssociazioneVeicoli_TrattaReale` TO 'GestoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`EmissioneBiglietto` TO 'GestoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`EmissioneAbbonamento` TO 'GestoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`SostituzioneTurno` TO 'GestoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_BigliettoElettronico` TO 'GestoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_Abbonamento` TO 'GestoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Elimina_OrarioConducente` TO 'GestoreServizio';
+GRANT CREATE VIEW, SHOW VIEW ON TABLE `progetto`.`CercaTurni` TO 'GestoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Cerca_InformazioniImportanti_Di_Un_Conducente` TO 'GestoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`CercaTurni_per_Conducente` TO 'GestoreServizio';
+GRANT CREATE VIEW, SHOW VIEW ON TABLE `progetto`.`CercaConducenti` TO 'GestoreServizio';
+GRANT EXECUTE ON procedure `progetto`.`Cerca_TratteReali_in_una_data` TO 'GestoreServizio';
+
+SET SQL_MODE=@OLD_SQL_MODE;
+SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
+SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
+
+-- -----------------------------------------------------
+-- Data for table `progetto`.`VeicoloPubblico`
+-- -----------------------------------------------------
+START TRANSACTION;
+USE `progetto`;
+INSERT INTO `progetto`.`VeicoloPubblico` (`Matricola`, `DataDiAcquisto`, `Latitudine`, `Longitudine`) VALUES ('1234', '2018-10-09', 135.69, 140.27);
+INSERT INTO `progetto`.`VeicoloPubblico` (`Matricola`, `DataDiAcquisto`, `Latitudine`, `Longitudine`) VALUES ('1111', '2018-10-09', 1, 1);
+
+COMMIT;
+
+
+-- -----------------------------------------------------
+-- Data for table `progetto`.`Waypoint`
+-- -----------------------------------------------------
+START TRANSACTION;
+USE `progetto`;
+INSERT INTO `progetto`.`Waypoint` (`Latitudine`, `Longitudine`) VALUES (128.2, 40.9);
+INSERT INTO `progetto`.`Waypoint` (`Latitudine`, `Longitudine`) VALUES (128.300, 40.100);
+INSERT INTO `progetto`.`Waypoint` (`Latitudine`, `Longitudine`) VALUES (120, 10);
+
+COMMIT;
+
+
+-- -----------------------------------------------------
+-- Data for table `progetto`.`Fermata`
+-- -----------------------------------------------------
+START TRANSACTION;
+USE `progetto`;
+INSERT INTO `progetto`.`Fermata` (`CodiceFermata`, `Waypoint_Latitudine`, `Waypoint_Longitudine`) VALUES ('12346', 128.2, 40.9);
+INSERT INTO `progetto`.`Fermata` (`CodiceFermata`, `Waypoint_Latitudine`, `Waypoint_Longitudine`) VALUES ('12347', 128.300, 40.100);
+
+COMMIT;
+
+
+-- -----------------------------------------------------
+-- Data for table `progetto`.`TrattaStradale`
+-- -----------------------------------------------------
+START TRANSACTION;
+USE `progetto`;
+INSERT INTO `progetto`.`TrattaStradale` (`CodiceIdentificativo`, `PrimaFermata`, `UltimaFermata`) VALUES ('12345', '12346', '12347');
+INSERT INTO `progetto`.`TrattaStradale` (`CodiceIdentificativo`, `PrimaFermata`, `UltimaFermata`) VALUES ('11111', '12347', '12346');
+
+COMMIT;
+
+
+-- -----------------------------------------------------
+-- Data for table `progetto`.`Utenti`
+-- -----------------------------------------------------
+START TRANSACTION;
+USE `progetto`;
+INSERT INTO `progetto`.`Utenti` (`Username`, `Password`, `Ruolo`) VALUES ('Mario', 'c4ca4238a0b923820dcc509a6f75849b', 'Conducente');
+INSERT INTO `progetto`.`Utenti` (`Username`, `Password`, `Ruolo`) VALUES ('Giuseppe', 'c81e728d9d4c2f636f067f89cc14862c', 'AmministratoreServizio');
+INSERT INTO `progetto`.`Utenti` (`Username`, `Password`, `Ruolo`) VALUES ('Francesco', 'eccbc87e4b5ce2fe28308fd9f2a7baf3', 'Conducente');
+INSERT INTO `progetto`.`Utenti` (`Username`, `Password`, `Ruolo`) VALUES ('Alessandro', 'a87ff679a2f3e71d9181a67b7542122c', 'GestoreServizio');
+INSERT INTO `progetto`.`Utenti` (`Username`, `Password`, `Ruolo`) VALUES ('Ludovico', 'c4ca4238a0b923820dcc509a6f75849b', 'UtenteSistema');
+
+COMMIT;
+
+
+-- -----------------------------------------------------
+-- Data for table `progetto`.`Conducente`
+-- -----------------------------------------------------
+START TRANSACTION;
+USE `progetto`;
+INSERT INTO `progetto`.`Conducente` (`CF`, `Utenti_Username`, `Nome`, `Cognome`, `DataDiNascita`, `LuogoDiNascita`, `NumPatente`, `DataScadenzaPatente`, `InMalattia`, `VeicoloPubblico_Matricola`) VALUES ('1234567891111111', 'Mario', 'pippo', 'pluto', '1996-12-11', 'Sora', '0123456789', '2020-12-09', 0, '1234');
+INSERT INTO `progetto`.`Conducente` (`CF`, `Utenti_Username`, `Nome`, `Cognome`, `DataDiNascita`, `LuogoDiNascita`, `NumPatente`, `DataScadenzaPatente`, `InMalattia`, `VeicoloPubblico_Matricola`) VALUES ('1234567891111112', 'Francesco', 'pippo', 'pluto', '1997-01-11', 'Sora', '0123456789', '2020-12-09', 0, '1234');
+INSERT INTO `progetto`.`Conducente` (`CF`, `Utenti_Username`, `Nome`, `Cognome`, `DataDiNascita`, `LuogoDiNascita`, `NumPatente`, `DataScadenzaPatente`, `InMalattia`, `VeicoloPubblico_Matricola`) VALUES ('1234567891111113', 'Alessandro', 'pippo', 'pluto', '1966-12-11', 'Sora', '0123456789', '2020-12-09', 0, NULL);
+
+COMMIT;
+
+
+-- -----------------------------------------------------
+-- Data for table `progetto`.`TurniLavorativi`
+-- -----------------------------------------------------
+START TRANSACTION;
+USE `progetto`;
+INSERT INTO `progetto`.`TurniLavorativi` (`Conducente_CF`, `InizioTurno`, `FineTurno`) VALUES ('1234567891111111', '2021-12-10 8:30:00', '2021-12-10 11:30:00');
+INSERT INTO `progetto`.`TurniLavorativi` (`Conducente_CF`, `InizioTurno`, `FineTurno`) VALUES ('1234567891111111', '2021-12-11 08:30:00', '2021-12-11 11:40');
+INSERT INTO `progetto`.`TurniLavorativi` (`Conducente_CF`, `InizioTurno`, `FineTurno`) VALUES ('1234567891111111', '2021-12-12 08:30:00', '2021-12-12 11:45');
+INSERT INTO `progetto`.`TurniLavorativi` (`Conducente_CF`, `InizioTurno`, `FineTurno`) VALUES ('1234567891111111', '2021-12-13 08:30:00', '2021-12-13 10:40');
+INSERT INTO `progetto`.`TurniLavorativi` (`Conducente_CF`, `InizioTurno`, `FineTurno`) VALUES ('1234567891111111', '2021-12-14 08:30:00', '2021-12-14 9:45');
+
+COMMIT;
+
+
+-- -----------------------------------------------------
+-- Data for table `progetto`.`TrattaReale`
+-- -----------------------------------------------------
+START TRANSACTION;
+USE `progetto`;
+INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-03-10', '8:30', '1234');
+INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-03-17', '13:30:00', '1234');
+INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-03-18', '20:30:00', '1234');
+INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-03-18', '00:30:00', '1234');
+INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-03-17', '12:40:00', '1234');
+INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('11111', '2021-02-27', '22:30', '1234');
+
+COMMIT;
+
+
+-- -----------------------------------------------------
+-- Data for table `progetto`.`AggregazioneTratta_Waypoint`
+-- -----------------------------------------------------
+START TRANSACTION;
+USE `progetto`;
+INSERT INTO `progetto`.`AggregazioneTratta_Waypoint` (`TrattaStradale_CodiceIdentificativo`, `Waypoint_Latitudine`, `Waypoint_Longitudine`, `Ordine`) VALUES ('12345', 128.2, 40.9, 2);
+INSERT INTO `progetto`.`AggregazioneTratta_Waypoint` (`TrattaStradale_CodiceIdentificativo`, `Waypoint_Latitudine`, `Waypoint_Longitudine`, `Ordine`) VALUES ('12345', 128.300, 40.100, 1);
+INSERT INTO `progetto`.`AggregazioneTratta_Waypoint` (`TrattaStradale_CodiceIdentificativo`, `Waypoint_Latitudine`, `Waypoint_Longitudine`, `Ordine`) VALUES ('12345', 120, 10, 3);
+
+COMMIT;
+
 -- begin attached script 'script'
 delimiter !
 create function `valid_conducente`(var_conducenteCF char(16),var_InizioTurno datetime, var_FineTurno datetime)
@@ -2111,6 +2126,6 @@ on completion preserve
 comment 'Management--> Eliminazione tratte reali gia eseguite'
 do	
 	BEGIN 
-    delete from `TrattaReale` where `DataPartenzaReale` < curdate();
+    delete from `TrattaReale` where `DataPartenza` < curdate();
     END!
 -- end attached script 'script2'
