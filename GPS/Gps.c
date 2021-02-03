@@ -20,9 +20,9 @@ float longitudine;
 
 
 static void add_lat_long (int signo){
-	
-	latitudine = 100 + rand()%100 + 0.1*(rand()%10);
-	longitudine = 100 + rand()%100 + 0.1*(rand()%10);
+	//Coordinate Lazio
+	latitudine = 40 + rand()%3 + 0.1*(rand()%10)+ 0.01(rand()%10)+ 0.001*(rand()%10)+ 0.0001*(rand()%10);
+	longitudine = 10 + rand()%3 + 0.1*(rand()%10)+ 0.01(rand()%10)+ 0.001*(rand()%10)+ 0.0001*(rand()%10);
 	
 	if (mysql_stmt_execute(stmt) != 0) {
 		print_stmt_error(stmt, "Could not execute gps procedure");
