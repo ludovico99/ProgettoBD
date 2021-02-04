@@ -15,14 +15,21 @@ MYSQL_STMT* stmt;
 char veicolo[4]={"1234"};
 float latitudine;
 float longitudine;
+int numero_waypoint=0;
 #define timeout 5 
 
-
+static int i;
 
 static void add_lat_long (int signo){
 	//Coordinate Lazio
-	latitudine = 40 + rand()%3 + 0.1*(rand()%10)+ 0.01(rand()%10)+ 0.001*(rand()%10)+ 0.0001*(rand()%10);
-	longitudine = 10 + rand()%3 + 0.1*(rand()%10)+ 0.01(rand()%10)+ 0.001*(rand()%10)+ 0.0001*(rand()%10);
+	latitudine = 40 + rand()%3 + 0.1*(rand()%10)+ 0.01*(rand()%10)+ 0.001*(rand()%10)+ 0.0001*(rand()%10);
+	longitudine = 10 + rand()%3 + 0.1*(rand()%10)+ 0.01*(rand()%10)+ 0.001*(rand()%10)+ 0.0001*(rand()%10);
+	
+	if (i%5 == 0){
+		numero_waypoint = numero_waypoint + 1; //Ogni circa 25 secondi il veicolo supera un waypoint 
+	
+	}
+	
 	
 	if (mysql_stmt_execute(stmt) != 0) {
 		print_stmt_error(stmt, "Could not execute gps procedure");
@@ -30,14 +37,14 @@ static void add_lat_long (int signo){
 		mysql_stmt_close(stmt);
 	}
 		
-	printf("\nInsertion statement executed correctly: latitudine %f , longitudine %f",latitudine,longitudine);
+	printf("\nInsertion statement executed correctly: Latitudine %f , Longitudine %f , Numero Ordine Waypoint superato %d",latitudine,longitudine, numero_waypoint);
 	alarm(timeout);
 }
 
 int main(void) {	
 	c=true;
-	void *data[3];
-	enum_field_types type[3];
+	void *data[4];
+	enum_field_types type[4];
 	if (!parse_config("Gps.json", &conf)) {
 		fprintf(stderr, "Unable to load login configuration\n");
 		exit(EXIT_FAILURE);
@@ -56,7 +63,7 @@ int main(void) {
 		exit(EXIT_FAILURE);
 	}
 	
-	if (!setup_prepared_stmt(&stmt, "call InformazioniGPS(?, ?, ?)", conn)) {
+	if (!setup_prepared_stmt(&stmt, "call InformazioniGPS(?, ?, ?, ?)", conn)) {
 		print_stmt_error(stmt, "Unable to initialize informazioni gps statement\n");
 		exit(-1);
 		}
@@ -65,15 +72,17 @@ int main(void) {
 	data[0]=(void*)veicolo;
 	data[1]=(void*)&latitudine;
 	data[2]=(void*)&longitudine;
+	data[3]=(void*)&numero_waypoint;
 	
 	type[0]=MYSQL_TYPE_VAR_STRING;
 	type[1]=MYSQL_TYPE_FLOAT;
 	type[2]=MYSQL_TYPE_FLOAT;
+	type[3]=MYSQL_TYPE_LONG;
 
 	
 	memset(param, 0, sizeof(param));
 	
-	setup_mysql_bind(3,data,type,param);
+	setup_mysql_bind(4,data,type,param);
 		
 
 	if (mysql_stmt_bind_param(stmt, param) != 0) { 
@@ -86,6 +95,7 @@ int main(void) {
 	
 	while (c){
 		pause();
+		i++;
 		}
 		
 	printf("Bye!\n");
