@@ -303,7 +303,7 @@ static void find_driver_shiftReplacement(MYSQL *conn) {
 	memset(global_inizioTurno, 0, sizeof(global_inizioTurno));
 	memset(global_fineTurno, 0, sizeof(global_fineTurno));
 			
-	printf("\nInserisci il codice fiscale del conducente che si intende sostituire: ");
+	printf("\nInserisci il codice fiscale del conducente che si intende sostituire (16 caratteri): ");
 	getInput(17,global_conducente_cf,false);
 	printf("\nInserisci il datetime corrispondente all' inizio del turno (yyyy-mm-dd hh:mm): ");
 riprova1:
@@ -693,13 +693,13 @@ void emissione_biglietto(MYSQL *conn) {
 
 static void driver_healed (MYSQL *conn){
 	MYSQL_STMT* prepared_stmt;
-	MYSQL_BIND param[4];
+	MYSQL_BIND param[1];
 	void *data[1];
 	enum_field_types type[1];
 
 	char codiceFiscale[17];
 	
-	printf("\nInserisci il codice fiscale del conducente guarito: ");
+	printf("\nInserisci il codice fiscale del conducente guarito (16 caratteri): ");
 	getInput(17, codiceFiscale, false);
 	
 	if (!setup_prepared_stmt(&prepared_stmt, "call ConducenteGuarito(?)", conn)) {
@@ -997,7 +997,7 @@ void run_as_serviceManager(MYSQL* conn)
 		printf("2) Eliminare turno ad un conducente\n");
 		printf("3) Cerca conducenti validi per la sostituzione\n");
 		printf("4) Sostituire il turno di un conducente\n");
-		printf("5) Associare un veicolo ad una tratta reale\n");
+		printf("5) Associare un veicolo ad una tratta reale (se non esiste la tratta reale inserita verrà creata\n");
 		printf("6) Emettere biglietto\n");
 		printf("7) Eliminare biglietto\n");
 		printf("8) Emettere abbonamento\n");

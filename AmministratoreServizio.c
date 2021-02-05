@@ -251,7 +251,7 @@ static void delete_driver(MYSQL *conn){
 	void *data[1];
 	enum_field_types type[1];
 
-	printf("\nInserisci il codice fiscale del conducente che si intende eliminare: ");
+	printf("\nInserisci il codice fiscale del conducente che si intende eliminare ((16 caratteri)): ");
 	getInput(17, cf, false);
 	
 		
@@ -1009,7 +1009,7 @@ static void create_user(MYSQL* conn)
 {
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[3];
-	const char* options[4] = { "1","2", "3" };
+	const char* options[4] = { "1","2", "3","4"};
 	int r;
 
 	// Input for the registration routine
@@ -1028,12 +1028,13 @@ static void create_user(MYSQL* conn)
 	printf("\t1) Amministratore Servizio\n");
 	printf("\t2) Conducente\n");
 	printf("\t3) Utente Sistema\n");
-	r = atoi(multiChoice("Select role", options, 3));
+	printf("\t4) Gestore Servizio\n");
+	r = atoi(multiChoice("Select role", options, 4));
 
 	// Convert role into enum value
 	switch (r) {
 	case 1:
-		strcpy(ruolo, "AmministatoreServizio");
+		strcpy(ruolo, "AmministratoreServizio");
 		break;
 	case 2:
 		strcpy(ruolo, "Conducente");
@@ -1041,6 +1042,9 @@ static void create_user(MYSQL* conn)
 	case 3:
 		strcpy(ruolo, "UtenteSistema");
 		break;
+	case 4:
+	 	strcpy(ruolo,"GestoreServizio");
+	 	break;
 	default:
 		fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
 		abort();

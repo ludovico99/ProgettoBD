@@ -13,6 +13,8 @@ static void compute_distance(MYSQL *conn){
 	char *token_vectorData[4];
 	char *token_vectorOrario[3];
 	char buff[46];
+	void *data[5];
+	enum_field_types type[5];
 
 	float result;	
 
@@ -31,7 +33,7 @@ static void compute_distance(MYSQL *conn){
 	printf("\nInserisci il codice di fermata(5 cifre): ");
 	getInput(6,  codiceFermata, false);
 	
-	printf("\nInserisci la data di partenza (yyyy-mm-hh): ");
+	printf("\nInserisci la data di partenza (yyyy-mm-dd): ");
 riprova1:
 	getInput(46, buff, false);
 	tokenizer(token_vectorData,buff,0);
@@ -59,17 +61,6 @@ riprova2:
 	orarioPartenza->hour = atoi(token_vectorOrario[0]);
 	orarioPartenza->minute = atoi(token_vectorOrario[1]);
 	
-	/*orarioPartenza->day=0;
-	orarioPartenza->second=0;
-	orarioPartenza->second_part=0;*/
-		
-	printf("%s\n",codiceTratta);
-	printf("%d\n",dataPartenza->year);
-	printf("%d\n",dataPartenza->month);
-	printf("%d\n",dataPartenza->day );
-	printf("%d\n",orarioPartenza->hour);
-	printf("%d\n",orarioPartenza->minute);
-	
 
 		
 	// Prepare stored procedure call
@@ -78,14 +69,12 @@ riprova2:
 	}
 
 	
-	void *data[5];
 	data[0]=(void*)codiceTratta;
 	data[1]=(void*)codiceFermata;
 	data[2]=(void*)dataPartenza;
 	data[3]=(void*)orarioPartenza;
-	data[4]=(void*)(&result);
+	data[4]=(void*)&result;
 	
-	enum_field_types type[5];
 	type[0]=MYSQL_TYPE_STRING;
 	type[1]=MYSQL_TYPE_STRING;
 	type[2]=MYSQL_TYPE_DATE;
@@ -97,25 +86,6 @@ riprova2:
 	setup_mysql_bind(5,data,type,param);
 	
 	
-	/*param[0].buffer_type = MYSQL_TYPE_STRING;
-	param[0].buffer = codiceTratta;
-	param[0].buffer_length = strlen(codiceTratta);
-	
-	param[1].buffer_type = MYSQL_TYPE_STRING;
-	param[1].buffer = codiceFermata;
-	param[1].buffer_length = strlen(codiceFermata);
-	
-	param[2].buffer_type = MYSQL_TYPE_DATE;
-	param[2].buffer = dataPartenza;
-	param[2].buffer_length = sizeof(dataPartenza);
-	
-	param[3].buffer_type = MYSQL_TYPE_TIME;
-	param[3].buffer = orarioPartenza;
-	param[3].buffer_length = sizeof(orarioPartenza);
-	
-	param[4].buffer_type = MYSQL_TYPE_FLOAT;
-	param[4].buffer = &result;
-	param[4].buffer_length = sizeof(result);*/
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
 		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for computing distance\n", true);
@@ -127,13 +97,14 @@ riprova2:
 		print_stmt_error(prepared_stmt, "An error occurred while executing compute distance.");
 		goto out;
 	}
-
+	
+	data[0]=(void*)&result;
+	type[0]=MYSQL_TYPE_FLOAT;	
+	
 	memset(param, 0, sizeof(param));
 	
-	param[0].buffer_type = MYSQL_TYPE_FLOAT;
-	param[0].buffer = &result;
-	param[0].buffer_length = sizeof(result);
-
+	
+	setup_mysql_bind(1,data,type,param);
 	
 	if(mysql_stmt_bind_result(prepared_stmt, param)) {
 		finish_with_stmt_error(conn, prepared_stmt, "Could not retrieve output parameter", true);
