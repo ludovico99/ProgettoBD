@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS `progetto`.`Fermata` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
+
 CREATE INDEX `fk_Fermata_Waypoint1_idx` ON `progetto`.`Fermata` (`Waypoint_Latitudine` ASC, `Waypoint_Longitudine` ASC) VISIBLE;
 
 
@@ -85,7 +86,6 @@ CREATE TABLE IF NOT EXISTS `progetto`.`TrattaStradale` (
     ON DELETE CASCADE
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
-
 
 CREATE INDEX `fk_TrattaStradale_Fermata1_idx` ON `progetto`.`TrattaStradale` (`PrimaFermata` ASC) VISIBLE;
 
@@ -663,7 +663,7 @@ declare exit handler for sqlexception
 							  from `TurniLavorativi`  
 							  group by `Conducente_CF`
 							  having count(*)>4)
-	and `InMalattia` =b'0'
+	and `InMalattia` = b'0'
 
     and `VeicoloPubblico_Matricola` in (select `VeicoloPubblico_Matricola` 
 											from `Conducente` 
@@ -1789,13 +1789,15 @@ COMMIT;
 -- -----------------------------------------------------
 START TRANSACTION;
 USE `progetto`;
-INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-03-10', '8:30', '1234');
+INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-03-10', '8:30:00', '1234');
 INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-03-17', '13:30:00', '1234');
 INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-03-18', '20:30:00', '1234');
 INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-03-18', '00:30:00', '1234');
 INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-03-17', '12:40:00', '1234');
-INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('11111', '2021-02-27', '22:30', '1234');
+INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('11111', '2021-02-27', '22:30:00', '1234');
 INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('11111', '2021-02-27', '12:40:00', '1235');
+INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('11111', '2021-02-16', '17:30:00', '1235');
+INSERT INTO `progetto`.`TrattaReale` (`TrattaStradale`, `DataPartenza`, `OrarioPartenza`, `VeicoloPubblico_Matricola`) VALUES ('12345', '2021-02-16', '17:20:00', '1235');
 
 COMMIT;
 
